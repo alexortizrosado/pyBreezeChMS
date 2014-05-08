@@ -11,7 +11,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as readme:
 
 
 setup(name='pyBreezeChMS',
-      version='0.1.0',
+      version='0.1.1',
       description="Python interface to BreezeChMS REST API.",
       long_description=long_description,
       classifiers=[
@@ -33,5 +33,6 @@ setup(name='pyBreezeChMS',
       license='MIT',
       packages=['breeze'],
       test_suite='tests.all_tests',
+      install_requires=['requests>=1.1.0'],
       zip_safe=False,
 )
