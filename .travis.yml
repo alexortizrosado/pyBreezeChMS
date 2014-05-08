@@ -7,5 +7,9 @@ install:
   - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
 script: python setup.py test
 notifications:
-  - email: false
+  email:
+    recipients:
+      - aortiz32@gmail.com
+    on_success: [always|never|change] # default: change
+    on_failure: [always|never|change] # default: always
 
