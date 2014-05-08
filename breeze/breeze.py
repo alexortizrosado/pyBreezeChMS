@@ -10,6 +10,9 @@ class BreezeError(Exception):
 	
 
 class BreezeApi(object):
+	"""
+	The Breeze API allows you to build custom applications integrated with the Breeze database.
+	"""
 
   def __init__(self, subdomain, api_key):
     if (subdomain and 
