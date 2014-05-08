@@ -20,7 +20,7 @@ from breeze import breeze
 breeze = breeze.BreezeApi('https://your_subdomain.breezechms.com', 'YourApiKey')
 ```
 
-To JSON of all people:
+To get a JSON of all people:
 
 ```python
 
