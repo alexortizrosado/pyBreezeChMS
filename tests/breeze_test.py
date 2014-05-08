@@ -25,7 +25,7 @@ class BreezeApiTestCase(unittest.TestCase):
 
   def test_make_request(self):
     self.assertRaises(NotImplementedError, 
-        lambda: self.breeze.make_request('/request', 'POST'))
+        lambda: self.breeze._make_request('/request', 'POST'))
 
   def test_get_people(self):
     self.assertRaises(NotImplementedError, 
