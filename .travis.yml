@@ -2,7 +2,6 @@ language: python
 python:
   - 2.6
   - 2.7
-  - 3.2
 install:
   - pip install -r requirements.txt --use-mirrors
   - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
