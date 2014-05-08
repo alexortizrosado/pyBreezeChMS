@@ -11,8 +11,7 @@ Python interface to BreezeCHMS REST API http://www.breezechms.com
 
 Installation
 -------------
-Before using pyBreezeChMS, you'll need to install the `requests`_ library:
-.. _requests: http://docs.python-requests.org/en/latest/
+Before using pyBreezeChMS, you'll need to install the `requests <http://docs.python-requests.org/en/latest/>`_ library:
 
 .. code-block:: bash
 
