@@ -16,7 +16,6 @@ Before using pyBreezeChMS, you'll need to install the `requests <http://docs.pyt
 .. code-block:: bash
 
     $ sudo pip install requests
-    $ sudo pip install python-firebase
 
 Getting Started
 ---------------

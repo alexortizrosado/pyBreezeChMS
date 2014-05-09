@@ -10,7 +10,6 @@ Python interface to BreezeCHMS REST API http://www.breezechms.com
 Before using pyBreezeChMS, you'll need to install the [requests](http://docs.python-requests.org/en/latest/) library:
 
     $ sudo pip install requests
-    $ sudo pip install python-firebase
 
 ## Getting Started
 
