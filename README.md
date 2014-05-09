@@ -1,4 +1,4 @@
-Python BreezeCHMS
+PyBreezeChMS
 =================
 
 Python interface to BreezeCHMS REST API http://www.breezechms.com
