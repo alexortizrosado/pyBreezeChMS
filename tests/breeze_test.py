@@ -42,7 +42,7 @@ class BreezeApiTestCase(unittest.TestCase):
     self.assertRaises(BreezeError,
         lambda: BreezeApi(self.FAKE_API_KEY, 'http://blah.breezechms.com'))
     self.assertRaises(BreezeError,
-      lambda: BreezeApi(self.FAKE_API_KEY, ''))
+        lambda: BreezeApi(self.FAKE_API_KEY, ''))
   
   def test_missing_api_key(self):
     self.assertRaises(BreezeError,
