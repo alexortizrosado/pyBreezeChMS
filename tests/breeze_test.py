@@ -38,54 +38,72 @@ class BreezeApiTestCase(unittest.TestCase):
   
   def test_invalid_subdomain(self):
     self.assertRaises(BreezeError,
-        lambda: BreezeApi(self.FAKE_API_KEY, 'invalid-subdomain'))
+        lambda: BreezeApi(api_key=self.FAKE_API_KEY, breeze_url='invalid-subdomain'))
     self.assertRaises(BreezeError,
-        lambda: BreezeApi(self.FAKE_API_KEY, 'http://blah.breezechms.com'))
+        lambda: BreezeApi(api_key=self.FAKE_API_KEY, breeze_url='http://blah.breezechms.com'))
     self.assertRaises(BreezeError,
-        lambda: BreezeApi(self.FAKE_API_KEY, ''))
+        lambda: BreezeApi(api_key=self.FAKE_API_KEY, breeze_url=''))
   
   def test_missing_api_key(self):
     self.assertRaises(BreezeError,
-        lambda: BreezeApi(None, self.FAKE_SUBDOMAIN))
+        lambda: BreezeApi(api_key=None, breeze_url=self.FAKE_SUBDOMAIN))
     self.assertRaises(BreezeError,
-        lambda: BreezeApi('', self.FAKE_SUBDOMAIN))
+        lambda: BreezeApi(api_key='', breeze_url=self.FAKE_SUBDOMAIN))
   
   def test_get_people(self):
     response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
     connection = MockConnection(response)
-    breeze = BreezeApi(self.FAKE_SUBDOMAIN, self.FAKE_API_KEY, connection)
+    breeze = BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
     self.assertEqual(breeze.get_people(), json.loads(response.content))
   
   def test_get_profile_fields(self):
     response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
     connection = MockConnection(response)
-    breeze = BreezeApi(self.FAKE_SUBDOMAIN, self.FAKE_API_KEY, connection)
+    breeze = BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
     self.assertEqual(breeze.get_profile_fields(), json.loads(response.content))
   
   def test_get_person_details(self):
     response = MockResponse(200, json.dumps({'person_id': 'Some Data.'}))
     connection = MockConnection(response)
-    breeze = BreezeApi(self.FAKE_SUBDOMAIN, self.FAKE_API_KEY, connection)
+    breeze = BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
     self.assertEqual(breeze.get_person_details('person_id'),
                      json.loads(response.content))
   
   def test_get_events(self):
     response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
     connection = MockConnection(response)
-    breeze = BreezeApi(self.FAKE_SUBDOMAIN, self.FAKE_API_KEY, connection)
+    breeze = BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
     self.assertEqual(breeze.get_events(),json.loads(response.content))
   
   def test_event_check_in(self):
     response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
     connection = MockConnection(response)
-    breeze = BreezeApi(self.FAKE_SUBDOMAIN, self.FAKE_API_KEY, connection)
+    breeze = BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
     self.assertEqual(breeze.event_check_in('person_id', 'event_id'),
                      json.loads(response.content))
   
   def test_event_check_out(self):
     response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
     connection = MockConnection(response)
-    breeze = BreezeApi(self.FAKE_SUBDOMAIN, self.FAKE_API_KEY, connection)
+    breeze = BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
     self.assertEqual(breeze.event_check_out('person_id', 'event_id'),
                      json.loads(response.content))
 
