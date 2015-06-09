@@ -42,9 +42,11 @@ class BreezeApiTestCase(unittest.TestCase):
   
   def testInvalidSubdomain(self):
     self.assertRaises(BreezeError,
-        lambda: BreezeApi(api_key=self.FAKE_API_KEY, breeze_url='invalid-subdomain'))
+        lambda: BreezeApi(api_key=self.FAKE_API_KEY,
+                          breeze_url='invalid-subdomain'))
     self.assertRaises(BreezeError,
-        lambda: BreezeApi(api_key=self.FAKE_API_KEY, breeze_url='http://blah.breezechms.com'))
+        lambda: BreezeApi(api_key=self.FAKE_API_KEY,
+                          breeze_url='http://blah.breezechms.com'))
     self.assertRaises(BreezeError,
         lambda: BreezeApi(api_key=self.FAKE_API_KEY, breeze_url=''))
   

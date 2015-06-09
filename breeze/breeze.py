@@ -98,7 +98,7 @@ class BreezeApi(object):
     except requests.ConnectionError as error:
         raise BreezeError(error.message)
     else:
-        if not self._request_succeeded(response):
+        if not self._RequestSucceeded(response):
             raise BreezeError(response)
         return response
   
@@ -151,7 +151,7 @@ class BreezeApi(object):
     Returns:
       JSON response.
     """
-    return self._request(ENDPOINTS.PROFILE_FIELDS)
+    return self._Request(ENDPOINTS.PROFILE_FIELDS)
   
   def GetPersonDetails(self, person_id):
     """Retrieve the details for a specific person by their ID.
@@ -162,7 +162,7 @@ class BreezeApi(object):
     Returns:
       JSON response.
     """
-    return self._request('%s/%s' % (ENDPOINTS.PEOPLE, str(person_id)))
+    return self._Request('%s/%s' % (ENDPOINTS.PEOPLE, str(person_id)))
   
   def GetEvents(self, start_date=None, end_date=None):
     """Retrieve all events for a given date range.
@@ -178,7 +178,7 @@ class BreezeApi(object):
       params.append('start=%s' % start_date)
     if end_date:
       params.append('end=%s' % end_date)
-    return self._request('%s/?%s' % (ENDPOINTS.EVENTS, '&'.join(params)))
+    return self._Request('%s/?%s' % (ENDPOINTS.EVENTS, '&'.join(params)))
   
   def EventCheckIn(self, person_id, event_instance_id):
     """Checks in a person into an event.
@@ -190,7 +190,7 @@ class BreezeApi(object):
     Returns:
       True if check-in succeeds; False if check-in fails.
     """
-    return self._request('%s/attendance/add?person_id=%s&instance_id=%s' % (
+    return self._Request('%s/attendance/add?person_id=%s&instance_id=%s' % (
         ENDPOINTS.EVENTS, str(person_id), str(event_instance_id)))
     
   
@@ -204,7 +204,7 @@ class BreezeApi(object):
     Returns:
       True if check-in succeeds; False if check-in fails.
     """
-    return self._request(
+    return self._Request(
         '%s/attendance/delete?person_id=%s&instance_id=%s' % (
             ENDPOINTS.EVENTS, str(person_id), str(event_instance_id)))
 
@@ -284,7 +284,7 @@ class BreezeApi(object):
       params.append('batch_number=%s' % batch_number)
     if batch_name:
       params.append('batch_name=%s' % dabatch_namete)
-    response = self._request('%s/add?%s' % (ENDPOINTS.CONTRIBUTIONS,
+    response = self._Request('%s/add?%s' % (ENDPOINTS.CONTRIBUTIONS,
                                             '&'.join(params)))
     if not response['success']:
       raise BreezeError('Failed to add contribution: ', response['errors'])
