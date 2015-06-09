@@ -22,6 +22,8 @@ class BreezeApi(object):
     self.connection = connection
 
     if not (self.breeze_url and
+        # TODO(alex): use urlparse to check url format.
+        self.breeze_url.startswith('https://') and
         self.breeze_url.endswith('.breezechms.com')):
       raise BreezeError('You must provide your breeze_url as ',
           'subdomain.breezechms.com')
