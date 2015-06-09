@@ -23,11 +23,13 @@ Getting Started
 .. code-block:: python
 
     from breeze import breeze
-    abreeze = breeze.BreezeApi(SUBDOMAIN, API_KEY)
+    abreeze = breeze.BreezeApi(
+        breeze_url=SUBDOMAIN,
+        apk_key=API_KEY)
 
 
 To get a JSON of all people:
 
 .. code-block:: python
 
-    people = breeze.get_people()
+    people = breeze.GetPeople()
