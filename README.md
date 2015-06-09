@@ -16,12 +16,14 @@ Before using pyBreezeChMS, you'll need to install the [requests](http://docs.pyt
 ```python
 from breeze import breeze
 
-breeze = breeze.BreezeApi('https://your_subdomain.breezechms.com', 'YourApiKey')
+breeze = breeze.BreezeApi(
+    breeze_url='https://your_subdomain.breezechms.com',
+    api_key='YourApiKey')
 ```
 
 To get a JSON of all people:
 
 ```python
 
-people = breeze.get_people()
+people = breeze.GetPeople()
 ```
