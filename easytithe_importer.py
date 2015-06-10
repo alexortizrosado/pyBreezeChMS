@@ -1,5 +1,21 @@
 #!/usr/bin/python
 
+"""Import contributions from EasyTithe to BreezeChMS.
+
+Logs into your EasyTithe account and imports contributions into BreezeChMS using
+the Python Breeze API.
+
+Usage:
+  python easytithe_importer.py \\
+    --username user@email.com \\
+    --password easytithe_password \\
+    --breeze_url https://demo.breezechms.com \\
+    --breeze_api_key 5c2d2cbacg3 \\
+    --start_date 01/01/2014 \\
+    --end_date 12/31/2014
+"""
+__author__ = 'alex@rohichurch.org (Alex Ortiz-Rosado)'
+
 import argparse
 import re
 import sys
@@ -10,8 +26,14 @@ from third_party.easytithe import easytithe
 
 
 class Contribution(object):
+  """An object for storing a contribution from EasyTithe."""
 
   def __init__(self, contribution):
+    """Instantiates a Contribution object.
+
+    Args:
+      contribution: a single contribution from EasyTithe.
+    """
     self._contribution = contribution
 
   @property
@@ -42,6 +64,7 @@ class Contribution(object):
 
   @property
   def amount(self):
+    # Removes leading $ and any thousands seperator.
     return self._contribution['Amount'].lstrip('$').replace(',', '')
 
   @property
@@ -95,7 +118,6 @@ def PareArgs():
     action='store_true',
     help='No-op, do not write anything')
 
-
   args = parser.parse_args()
   return args
 
@@ -112,6 +134,10 @@ def main():
   contributions = [
       Contribution(contribution) for contribution in et.GetContributions(
           start_date, end_date)]
+
+  if not contributions:
+    print 'No contributions found between %s and %s' % (start_date, end_date)
+    sys.exit(0)
 
   print 'Found %s contributions between %s and %s' % (len(contributions),
                                                       start_date,
