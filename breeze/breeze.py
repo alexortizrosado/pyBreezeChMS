@@ -9,7 +9,7 @@ Usage:
   breeze_api = breeze.BreezeApi(
       breeze_url='https://demo.breezechms.com',
       api_key='5c2d2cbacg3...')
-  people = breeze_api.get_people();
+  people = breeze_api.GetPeople();
 
   for person in people:
     print '%s %s' % (person['first_name'], person['last_name'])
@@ -21,7 +21,8 @@ import requests
 
 from utils import make_enum
 
-ENDPOINTS = make_enum('BreezeApiURL',
+ENDPOINTS = make_enum(
+    'BreezeApiURL',
     PEOPLE = '/api/people',
     EVENTS = '/api/events',
     PROFILE_FIELDS = '/api/profile',
@@ -36,17 +37,18 @@ class BreezeApi(object):
 
   def __init__(self, breeze_url, api_key, debug=False, dry_run=False,
                connection=requests.Session()):
-  """Instantiates the BreezeApi with your Breeze account information.
+    """Instantiates the BreezeApi with your Breeze account information.
 
-  Args:
-    breeze_url: Fully qualified domain for your organizations Breeze service.
-    api_key: Unique Breeze API key. For instructions on finding your
-             organizations API key, see:
-             http://breezechms.com/docs#extensions_api
-    debug: Enable debug output.
-    dry_run: Enable no-op mode, which disables requests from being made. When
-             combined with debug, this allows debugging requests without
-             affecting data in your Breeze account."""
+    Args:
+      breeze_url: Fully qualified domain for your organizations Breeze service.
+      api_key: Unique Breeze API key. For instructions on finding your
+               organizations API key, see:
+               http://breezechms.com/docs#extensions_api
+      debug: Enable debug output.
+      dry_run: Enable no-op mode, which disables requests from being made. When
+               combined with debug, this allows debugging requests without
+               affecting data in your Breeze account."""
+
     self.breeze_url = breeze_url
     self.api_key = api_key
     self.debug = debug
@@ -59,7 +61,7 @@ class BreezeApi(object):
         self.breeze_url.endswith('.breezechms.com')):
       raise BreezeError('You must provide your breeze_url as ',
           'subdomain.breezechms.com')
-    
+
     if not self.api_key:
       raise BreezeError('You must provide an API key.')
 
@@ -80,7 +82,7 @@ class BreezeApi(object):
     """
     headers = {'Content-Type': 'application/json',
                'Api-Key': self.api_key}
-    
+
     if params is None:
       params = {}
     kw = dict(params=params, headers=headers, timeout=timeout)
@@ -100,12 +102,12 @@ class BreezeApi(object):
         if not self._RequestSucceeded(response):
             raise BreezeError(response)
         return response
-  
+
   def _RequestSucceeded(self, response):
     """Predicate to ensure that the HTTP request succeeded."""
     return not (('error' in response) or ('errorCode' in response))
 
-  
+
   def GetPeople(self, limit=None, offset=None, details=False):
     """List people from your database.
 
@@ -137,13 +139,13 @@ class BreezeApi(object):
     params = []
     if limit:
       params.append('limit=%s' % limit)
-    if start:
+    if offset:
       params.append('offset=%s' % start)
     if details:
       params.append('details=1')
     return self._Request('%s/?%s' % (ENDPOINTS.PEOPLE, '&'.join(params)))
 
-  
+
   def GetProfileFields(self):
     """List profile fields from your database.
 
@@ -151,7 +153,7 @@ class BreezeApi(object):
       JSON response.
     """
     return self._Request(ENDPOINTS.PROFILE_FIELDS)
-  
+
   def GetPersonDetails(self, person_id):
     """Retrieve the details for a specific person by their ID.
 
@@ -162,7 +164,7 @@ class BreezeApi(object):
       JSON response.
     """
     return self._Request('%s/%s' % (ENDPOINTS.PEOPLE, str(person_id)))
-  
+
   def GetEvents(self, start_date=None, end_date=None):
     """Retrieve all events for a given date range.
     Args:
@@ -178,7 +180,7 @@ class BreezeApi(object):
     if end_date:
       params.append('end=%s' % end_date)
     return self._Request('%s/?%s' % (ENDPOINTS.EVENTS, '&'.join(params)))
-  
+
   def EventCheckIn(self, person_id, event_instance_id):
     """Checks in a person into an event.
 
@@ -191,8 +193,8 @@ class BreezeApi(object):
     """
     return self._Request('%s/attendance/add?person_id=%s&instance_id=%s' % (
         ENDPOINTS.EVENTS, str(person_id), str(event_instance_id)))
-    
-  
+
+
   def EventCheckOut(self, person_id, event_instance_id):
     """Remove the attendance for a person checked into an event.
 
@@ -232,8 +234,8 @@ class BreezeApi(object):
       processor: The name of the processor used to send the payment. Used in
                  conjunction with uid. Not needed if using Breeze ID.
                  (ie. SimpleGive, BluePay, Stripe)
-      method: The payment method. (ie. Check, Cash, Credit/Debit Online, 
-              Credit/Debit Offline, Donated Goods (FMV), Stocks (FMV), 
+      method: The payment method. (ie. Check, Cash, Credit/Debit Online,
+              Credit/Debit Offline, Donated Goods (FMV), Stocks (FMV),
               Direct Deposit)
       funds_json: JSON string containing fund names and amounts. This allows
                   splitting fund giving. The ID is optional. If present, it must
@@ -258,7 +260,7 @@ class BreezeApi(object):
       batch_name: The name of the batch. Can be used with batch number or group.
 
     Returns:
-      
+
     """
     params = []
     if date:
@@ -287,7 +289,3 @@ class BreezeApi(object):
                                             '&'.join(params)))
     if not response['success']:
       raise BreezeError('Failed to add contribution: ', response['errors'])
-
-
-
-

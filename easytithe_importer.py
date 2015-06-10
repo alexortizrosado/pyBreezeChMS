@@ -43,11 +43,11 @@ class Contribution(object):
   @property
   def amount(self):
     return self._contribution['Amount'].lstrip('$').replace(',', '')
-  
+
   @property
   def card_type(self):
     return self._contribution['Type']
-  
+
   @property
   def email_address(self):
     return self._contribution['Email']
@@ -100,44 +100,47 @@ def PareArgs():
   return args
 
 def main():
-  # 6b1c3babdf4eeccad9c7f41a5edcccbf
   args = PareArgs()
   start_date = args.start_date[0]
   end_date = args.end_date[0]
 
-  # EasyTithe
+  # Log into EasyTithe and get all contributions for date range.
   username = args.username[0]
   password = args.password[0]
-  print 'Username: %s\nPassword: %s' % (username, password)
+  print 'Connecting to EasyTithe [%s:%s]' % (username, password)
   et = easytithe.EasyTithe(username, password)
-  contributions = [Contribution(contribution) for contribution in et.GetContributions(start_date, end_date)]
-  
-  # Breeze
+  contributions = [
+      Contribution(contribution) for contribution in et.GetContributions(
+          start_date, end_date)]
+
+  print 'Found %s contributions between %s and %s' % (len(contributions),
+                                                      start_date,
+                                                      end_date)
+
+  # Log into Breeze using API.
   breeze_api_key = args.breeze_api_key[0]
   breeze_url = args.breeze_url[0]
-  breeze_api = breeze.BreezeApi(breeze_url, breeze_api_key, debug=True, dry_run=args.dry_run)
-  people = breeze_api.get_people();
+  breeze_api = breeze.BreezeApi(breeze_url, breeze_api_key, debug=True,
+                                dry_run=args.dry_run)
+  people = breeze_api.GetPeople();
   print 'Date range: %s - %s' % (start_date, end_date)
   print 'Found %d people in database.' % len(people)
 
   for person in people:
     person['full_name'] = '%s %s' % (person['force_first_name'].strip(),
                                      person['last_name'].strip())
- 
+
   for contribution in contributions:
     person_match = filter(
       lambda person: re.search(person['full_name'],
                                contribution.full_name,
                                re.IGNORECASE), people)
     if person_match:
-      # The 2014 Womens Retreat fund contains a non-ascii character.
-      if 'Retreat' in contribution.fund:
-        contribution.fund('2014 Womens Retreat')
-      print 'Adding contribution for [%s] for fund [%s].' % (
+      print 'Adding contribution for [%s] to fund [%s].' % (
           contribution.full_name, contribution.fund)
 
       # Add the contribution on the matching person's Breeze profile.
-      breeze_api.add_contribution(
+      breeze_api.AddContribution(
         date=contribution.date,
         name=contribution.full_name,
         person_id=person_match[0]['id'],
@@ -148,7 +151,8 @@ def main():
         group=contribution.date)
 
     if not person_match:
-      print 'WARNING: Unable to find match for [%s].' % full_name
+      print 'WARNING: Unable to find a matching person in Breeze for [%s].' % (
+          full_name)
 
 if __name__ == '__main__':
     main()
