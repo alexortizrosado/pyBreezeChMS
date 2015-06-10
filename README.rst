@@ -1,7 +1,7 @@
 PyBreezeChMS
 =================
 
-Python interface to BreezeCHMS REST API http://www.breezechms.com
+Python interface to BreezeChMS REST API http://www.breezechms.com
 
 .. image:: https://travis-ci.org/aortiz32/pyBreezeChMS.svg?branch=master
    :target: https://travis-ci.org/aortiz32/pyBreezeChMS
@@ -23,9 +23,9 @@ Getting Started
 .. code-block:: python
 
     from breeze import breeze
-    abreeze = breeze.BreezeApi(
-        breeze_url=SUBDOMAIN,
-        apk_key=API_KEY)
+    breeze_api = breeze.BreezeApi(
+        breeze_url='https://your_subdomain.breezechms.com',
+        apk_key='YourApiKey')
 
 
 To get a JSON of all people:

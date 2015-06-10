@@ -16,7 +16,7 @@ Before using pyBreezeChMS, you'll need to install the [requests](http://docs.pyt
 ```python
 from breeze import breeze
 
-breeze = breeze.BreezeApi(
+breeze_api = breeze.BreezeApi(
     breeze_url='https://your_subdomain.breezechms.com',
     api_key='YourApiKey')
 ```
