@@ -5,7 +5,7 @@ Breeze.
 
 Usage:
   from breeze import breeze
-  
+
   breeze_api = breeze.BreezeApi(
       breeze_url='https://demo.breezechms.com',
       api_key='5c2d2cbacg3...')
@@ -35,7 +35,7 @@ class BreezeApi(object):
   """A wrapper for the Breeze REST API."""
 
   def __init__(self, breeze_url, api_key, debug=False, dry_run=False,
-              connection=requests.Session()):
+               connection=requests.Session()):
   """Instantiates the BreezeApi with your Breeze account information.
 
   Args:
@@ -46,8 +46,7 @@ class BreezeApi(object):
     debug: Enable debug output.
     dry_run: Enable no-op mode, which disables requests from being made. When
              combined with debug, this allows debugging requests without
-             affecting data in your Breeze account.
-  """
+             affecting data in your Breeze account."""
     self.breeze_url = breeze_url
     self.api_key = api_key
     self.debug = debug
