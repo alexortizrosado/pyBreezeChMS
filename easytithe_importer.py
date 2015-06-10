@@ -136,10 +136,10 @@ def main():
           start_date, end_date)]
 
   if not contributions:
-    print 'No contributions found between %s and %s' % (start_date, end_date)
+    print 'No contributions found between %s and %s.' % (start_date, end_date)
     sys.exit(0)
 
-  print 'Found %s contributions between %s and %s' % (len(contributions),
+  print 'Found %s contributions between %s and %s.' % (len(contributions),
                                                       start_date,
                                                       end_date)
 
@@ -149,8 +149,7 @@ def main():
   breeze_api = breeze.BreezeApi(breeze_url, breeze_api_key, debug=True,
                                 dry_run=args.dry_run)
   people = breeze_api.GetPeople();
-  print 'Date range: %s - %s' % (start_date, end_date)
-  print 'Found %d people in database.' % len(people)
+  print 'Found %d people in Breeze database.' % len(people)
 
   for person in people:
     person['full_name'] = '%s %s' % (person['force_first_name'].strip(),

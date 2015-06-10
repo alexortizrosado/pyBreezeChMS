@@ -140,7 +140,7 @@ class BreezeApi(object):
     if limit:
       params.append('limit=%s' % limit)
     if offset:
-      params.append('offset=%s' % start)
+      params.append('offset=%s' % offset)
     if details:
       params.append('details=1')
     return self._Request('%s/?%s' % (ENDPOINTS.PEOPLE, '&'.join(params)))
@@ -260,7 +260,10 @@ class BreezeApi(object):
       batch_name: The name of the batch. Can be used with batch number or group.
 
     Returns:
+      JSON response.
 
+    Throws:
+      BreezeError on failure to add contribution.
     """
     params = []
     if date:
@@ -284,8 +287,9 @@ class BreezeApi(object):
     if batch_number:
       params.append('batch_number=%s' % batch_number)
     if batch_name:
-      params.append('batch_name=%s' % dabatch_namete)
+      params.append('batch_name=%s' % batch_name)
     response = self._Request('%s/add?%s' % (ENDPOINTS.CONTRIBUTIONS,
                                             '&'.join(params)))
     if not response['success']:
       raise BreezeError('Failed to add contribution: ', response['errors'])
+    return response
