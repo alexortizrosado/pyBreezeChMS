@@ -158,7 +158,9 @@ class BreezeApiTestCase(unittest.TestCase):
                      json.loads(response.content))
 
   def testAddContribution(self):
-    response = MockResponse(200, json.dumps({'success': 'true'}))
+    payment_id = '12345'
+    response = MockResponse(200, json.dumps({'success': True,
+                                             'payment_id': payment_id}))
     connection = MockConnection(response)
     breeze_api = breeze.BreezeApi(
         breeze_url=self.FAKE_SUBDOMAIN,
@@ -203,9 +205,97 @@ class BreezeApiTestCase(unittest.TestCase):
                                  'group=%s' % group,
                                  'batch_number=%s' % batch_number,
                                  'batch_name=%s' % batch_name])))
-    self.assertEqual(breeze_api.AddContribution(),
-                     json.loads(response.content))
+    self.assertEqual(breeze_api.AddContribution(), payment_id)
 
+  def testEditContribution(self):
+    new_payment_id = '99999'
+    response = MockResponse(200, json.dumps({'success': True,
+                                             'payment_id': new_payment_id}))
+    connection = MockConnection(response)
+    breeze_api = breeze.BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
+    payment_id = '12345'
+    date = '3-1-2014'
+    name = 'John Doe'
+    person_id = '123456'
+    uid = 'UID'
+    processor = 'Processor'
+    method = 'Method'
+    funds_json = "[{'id': '12345', 'name': 'Fund', 'amount', '150.00' }]"
+    amount = '150.00'
+    group = 'Group'
+    batch_number = '100'
+    batch_name = 'Batch Name'
+
+    breeze_api.EditContribution(
+        payment_id=payment_id,
+        date=date,
+        name=name,
+        person_id=person_id,
+        uid=uid,
+         processor=processor,
+        method=method,
+        funds_json=funds_json,
+        amount=amount,
+        group=group,
+        batch_number=batch_number,
+        batch_name=batch_name)
+    self.assertEquals(
+        connection.url,
+        '%s%s/edit?%s' % (self.FAKE_SUBDOMAIN,
+                      breeze.ENDPOINTS.CONTRIBUTIONS,
+                       '&'.join(['payment_id=%s' % payment_id,
+                                 'date=%s' % date,
+                                 'name=%s' % name,
+                                 'person_id=%s' % person_id,
+                                 'uid=%s' % uid,
+                                 'processor=%s' % processor,
+                                 'method=%s' % method,
+                                 'funds_json=%s' % funds_json,
+                                 'amount=%s' % amount,
+                                 'group=%s' % group,
+                                 'batch_number=%s' % batch_number,
+                                 'batch_name=%s' % batch_name])))
+    self.assertEqual(breeze_api.EditContribution(), new_payment_id)
+
+  def testDeleteContribution(self):
+    payment_id = '12345'
+    response = MockResponse(200, json.dumps({'success': True,
+                                             'payment_id': payment_id}))
+    connection = MockConnection(response)
+    breeze_api = breeze.BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
+    self.assertEquals(breeze_api.DeleteContribution(payment_id=payment_id),
+                      payment_id)
+    self.assertEquals(
+        connection.url,
+        '%s%s/delete?payment_id=%s' % (self.FAKE_SUBDOMAIN,
+                                       breeze.ENDPOINTS.CONTRIBUTIONS,
+                                       payment_id))
+
+  def testListFunds(self):
+    response = MockResponse(200, json.dumps([{
+        "id":"12345",
+        "name":"Adult Ministries",
+        "tax_deductible":"1",
+        "is_default":"0",
+        "created_on":"2014-09-10 02:19:35"
+      }]))
+    connection = MockConnection(response)
+    breeze_api = breeze.BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
+    self.assertEquals(breeze_api.ListFunds(include_totals=True),
+                      json.loads(response.content))
+    self.assertEquals(
+        connection.url,
+        '%s%s/list?include_totals=1' % (self.FAKE_SUBDOMAIN,
+                                        breeze.ENDPOINTS.FUNDS))
 
 if __name__ == '__main__':
   unittest.main()

@@ -26,7 +26,8 @@ ENDPOINTS = make_enum(
     PEOPLE = '/api/people',
     EVENTS = '/api/events',
     PROFILE_FIELDS = '/api/profile',
-    CONTRIBUTIONS = '/api/giving')
+    CONTRIBUTIONS = '/api/giving',
+    FUNDS = '/api/funds')
 
 class BreezeError(Exception):
   pass
@@ -95,13 +96,13 @@ class BreezeApi(object):
 
     response = self.connection.post(url, **kw)
     try:
-        response = response.json()
+      response = response.json()
     except requests.ConnectionError as error:
-        raise BreezeError(error.message)
+      raise BreezeError(error.message)
     else:
-        if not self._RequestSucceeded(response):
-            raise BreezeError(response)
-        return response
+      if not self._RequestSucceeded(response):
+        raise BreezeError(response)
+      return response
 
   def _RequestSucceeded(self, response):
     """Predicate to ensure that the HTTP request succeeded."""
@@ -260,7 +261,7 @@ class BreezeApi(object):
       batch_name: The name of the batch. Can be used with batch number or group.
 
     Returns:
-      JSON response.
+      Payment Id.
 
     Throws:
       BreezeError on failure to add contribution.
@@ -290,6 +291,132 @@ class BreezeApi(object):
       params.append('batch_name=%s' % batch_name)
     response = self._Request('%s/add?%s' % (ENDPOINTS.CONTRIBUTIONS,
                                             '&'.join(params)))
+    if response['success']:
+      return response['payment_id']
+    else:
+      raise BreezeError('Failed to delete contribution: ', response['errors'])
+
+  def EditContribution(self, payment_id=None, date=None, name=None,
+                       person_id=None, uid=None, processor=None, method=None,
+                       funds_json=None, amount=None, group=None,
+                       batch_number=None, batch_name=None):
+    """Edit an existing contribution.
+
+    Args:
+      payment_id: The ID of the payment that should be modified.
+      date: Date of transaction in DD-MM-YYYY format (ie. 24-5-2015)
+      name: Name of person that made the transaction. Used to help match up
+            contribution to correct profile within Breeze.  (ie. John Doe)
+      person_id: The Breeze ID of the donor. If unknown, use UID instead of
+                 person id  (ie. 1234567)
+      uid: The unique id of the person sent from the giving platform. This
+           should be used when the Breeze ID is unknown. Within Breeze a user
+           will be able to associate this ID with a given Breeze ID.
+           (ie. 9876543)
+      email: Email address of donor. If no person_id is provided, used to help
+             automatically match the person to the correct profile.
+             (ie. sample@breezechms.com)
+      street_address: Donor's street address. If person_id is not provided,
+                      street_address will be used to help automatically match
+                      the person to the correct profile.  (ie. 123 Sample St)
+      processor: The name of the processor used to send the payment. Used in
+                 conjunction with uid. Not needed if using Breeze ID.
+                 (ie. SimpleGive, BluePay, Stripe)
+      method: The payment method. (ie. Check, Cash, Credit/Debit Online,
+              Credit/Debit Offline, Donated Goods (FMV), Stocks (FMV),
+              Direct Deposit)
+      funds_json: JSON string containing fund names and amounts. This allows
+                  splitting fund giving. The ID is optional. If present, it must
+                  match an existing fund ID and it will override the fund name.
+                  ie. [ {
+                          'id':'12345',
+                          'name':'General Fund',
+                          'amount':'100.00'
+                        },
+                        {
+                          'name':'Missions Fund',
+                          'amount':'150.00'
+                        }
+                      ]
+      amount: Total amount given. Must match sum of amount in funds_json.
+      group: This will create a new batch and enter all contributions with the
+             same group into the new batch. Previous groups will be remembered
+             and so they should be unique for every new batch. Use this if
+             wanting to import into the next batch number in a series.
+      batch_number: The batch number to import contributions into. Use group
+                    instead if you want to import into the next batch number.
+      batch_name: The name of the batch. Can be used with batch number or group.
+
+    Returns:
+      Payment id.
+
+    Throws:
+      BreezeError on failure to edit contribution.
+    """
+    params = []
+    if payment_id:
+      params.append('payment_id=%s' % payment_id)
+    if date:
+      params.append('date=%s' % date)
+    if name:
+      params.append('name=%s' % name)
+    if person_id:
+      params.append('person_id=%s' % person_id)
+    if uid:
+      params.append('uid=%s' % uid)
+    if processor:
+      params.append('processor=%s' % processor)
+    if method:
+      params.append('method=%s' % method)
+    if funds_json:
+      params.append('funds_json=%s' % funds_json)
+    if amount:
+      params.append('amount=%s' % amount)
+    if group:
+      params.append('group=%s' % group)
+    if batch_number:
+      params.append('batch_number=%s' % batch_number)
+    if batch_name:
+      params.append('batch_name=%s' % batch_name)
+    response = self._Request('%s/edit?%s' % (ENDPOINTS.CONTRIBUTIONS,
+                                            '&'.join(params)))
     if not response['success']:
-      raise BreezeError('Failed to add contribution: ', response['errors'])
-    return response
+      raise BreezeError('Failed to edit contribution: ', response['errors'])
+    return response['payment_id']
+
+  def DeleteContribution(self, payment_id):
+    """Delete an existing contribution.
+
+    Args:
+      payment_id: The ID of the payment that should be deleted.
+
+    Returns:
+      Payment id.
+
+    Throws:
+      BreezeError on failure to delete contribution.
+    """
+    response = self._Request('%s/delete?payment_id=%s' % (
+        ENDPOINTS.CONTRIBUTIONS, payment_id))
+    if not response['success']:
+      raise BreezeError('Failed to delete contribution: ', response['errors'])
+    return response['payment_id']
+
+  def ListFunds(self, include_totals=False):
+    """List all funds.
+
+    Args:
+      include_totals: Amount given to the fund should be returned.
+
+    Returns:
+      JSON Reponse.
+    """
+    params = []
+    if include_totals:
+      params.append('include_totals=1')
+    return self._Request('%s/list?%s' % (
+        ENDPOINTS.FUNDS, '&'.join(params)))
+    if response['success']:
+      return response['payment_id']
+    else:
+      raise BreezeError('Failed to delete contribution: ', response['errors'])
