@@ -402,6 +402,63 @@ class BreezeApi(object):
       raise BreezeError('Failed to delete contribution: ', response['errors'])
     return response['payment_id']
 
+  def ListContributions(self, start_date, end_date, person_id=None,
+                        include_family=False, amount_min=None, amount_max=None,
+                        method_ids=None, fund_ids=None, envelope_number=None,
+                        batches=None, forms=None):
+    """Retrieve a list of contributions.
+
+    Args:
+      start_date: Find contributions given on or after a specific date
+                  (ie. 2015-1-1); required.
+      end_date: Find contributions given on or before a specific date
+                (ie. 2018-1-31); required.
+      person_id: ID of person's contributions to fetch. (ie. 9023482)
+      include_family: Include family members of person_id (must provide
+                      person_id); default: False.
+      amount_min: Contribution amounts equal or greater than.
+      amount_max: Contribution amounts equal or less than.
+      method_ids: List of method IDs.
+      fund_ids: List of fund IDs.
+      envelope_number: Envelope number.
+      batches: List of Batch numbers.
+      forms: List of form IDs.
+
+    Returns:
+      List of matching contributions.
+
+    Throws:
+      BreezeError on malformed request.
+    """
+    params = []
+    params.append('start_date=%s' % start_date)
+    params.append('end_date=%s' % end_date)
+    if person_id:
+      params.append('person_id=%s' % person_id)
+    if include_family:
+      if not person_id:
+        raise BreezeError('include_family requires a person_id.')
+      params.append('include_family=1')
+    if amount_min:
+      params.append('amount_min=%s' % amount_min)
+    if amount_max:
+      params.append('amount_max=%s' % amount_max)
+    if method_ids:
+      params.append('method_ids=%s' % '-'.join(method_ids))
+    if fund_ids:
+      params.append('fund_ids=%s' % '-'.join(fund_ids))
+    if envelope_number:
+      params.append('envelope_number=%s' % envelope_number)
+    if batches:
+      params.append('batches=%s' % '-'.join(batches))
+    if forms:
+      params.append('forms=%s' % '-'.join(forms))
+    response = self._Request('%s/list?%s' % (ENDPOINTS.CONTRIBUTIONS,
+                                            '&'.join(params)))
+    if not response['success']:
+      raise BreezeError('Failed to edit contribution: ', response['errors'])
+    return response
+
   def ListFunds(self, include_totals=False):
     """List all funds.
 

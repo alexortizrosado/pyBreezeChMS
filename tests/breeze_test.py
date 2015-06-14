@@ -135,7 +135,7 @@ class BreezeApiTestCase(unittest.TestCase):
                       breeze.ENDPOINTS.EVENTS,
                       '&'.join(['start=%s' % start_date,
                                 'end=%s' % end_date])))
-    self.assertEqual(breeze_api.GetEvents(),json.loads(response.content))
+    self.assertEqual(breeze_api.GetEvents(), json.loads(response.content))
 
   def testEventCheckIn(self):
     response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
@@ -235,7 +235,7 @@ class BreezeApiTestCase(unittest.TestCase):
         name=name,
         person_id=person_id,
         uid=uid,
-         processor=processor,
+        processor=processor,
         method=method,
         funds_json=funds_json,
         amount=amount,
@@ -259,6 +259,63 @@ class BreezeApiTestCase(unittest.TestCase):
                                  'batch_number=%s' % batch_number,
                                  'batch_name=%s' % batch_name])))
     self.assertEqual(breeze_api.EditContribution(), new_payment_id)
+
+  def testListContributions(self):
+    response = MockResponse(200, json.dumps({'success': True,
+                                             'payment_id': '555'}))
+    connection = MockConnection(response)
+    breeze_api = breeze.BreezeApi(
+        breeze_url=self.FAKE_SUBDOMAIN,
+        api_key=self.FAKE_API_KEY,
+        connection=connection)
+    start_date = '3-1-2014'
+    end_date = '3-2-2014'
+    person_id = '12345'
+    include_family = True
+    amount_min = '123456'
+    amount_max = 'UID'
+    method_ids = ['100', '101', '102']
+    fund_ids = ['200', '201', '202']
+    envelope_number = '1234'
+    batches = ['300', '301', '302']
+    forms = ['400', '401', '402']
+
+    breeze_api.ListContributions(
+        start_date=start_date,
+        end_date=end_date,
+        person_id=person_id,
+        include_family=include_family,
+        amount_min=amount_min,
+        amount_max=amount_max,
+        method_ids=method_ids,
+        fund_ids=fund_ids,
+        envelope_number=envelope_number,
+        batches=batches,
+        forms=forms)
+    self.assertEquals(
+        connection.url,
+        '%s%s/list?%s' % (self.FAKE_SUBDOMAIN,
+                      breeze.ENDPOINTS.CONTRIBUTIONS,
+                       '&'.join(['start_date=%s' % start_date,
+                                 'end_date=%s' % end_date,
+                                 'person_id=%s' % person_id,
+                                 'include_family=1',
+                                 'amount_min=%s' % amount_min,
+                                 'amount_max=%s' % amount_max,
+                                 'method_ids=%s' % '-'.join(method_ids),
+                                 'fund_ids=%s' % '-'.join(fund_ids),
+                                 'envelope_number=%s' % envelope_number,
+                                 'batches=%s' % '-'.join(batches),
+                                 'forms=%s' % '-'.join(forms)])))
+    self.assertEqual(breeze_api.ListContributions(start_date, end_date),
+                     json.loads(response.content))
+
+    # Ensure that an error gets thrown if person_id is not
+    # provided with include_family.
+    self.assertRaises(breeze.BreezeError,
+        lambda: breeze_api.ListContributions(start_date='3-2-2015',
+                                             end_date='3-2-2015',
+                                             include_family=True))
 
   def testDeleteContribution(self):
     payment_id = '12345'
