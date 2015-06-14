@@ -54,6 +54,14 @@ class Contribution(object):
         self._contribution['Date'], '%m/%d/%Y %I:%M:%S %p')
     return formatted_date.strftime('%d-%m-%Y')
 
+  # TODO(alex): Remove this once the List Contributions and Add Contributions
+  # REST API support the same YYYYMMDD date format.
+  @property
+  def date_as_YYYYMMDD(self):
+    formatted_date = datetime.strptime(
+        self._contribution['Date'], '%m/%d/%Y %I:%M:%S %p')
+    return formatted_date.strftime('%Y-%m-%d')
+
   @property
   def fund(self):
     return self._contribution['Fund']
@@ -116,7 +124,12 @@ def PareArgs():
   parser.add_argument(
     '-d', '--dry_run',
     action='store_true',
-    help='No-op, do not write anything')
+    help='No-op, do not write anything.')
+
+  parser.add_argument(
+    '--debug',
+    action='store_true',
+    help='Print debug output.')
 
   args = parser.parse_args()
   return args
@@ -146,7 +159,7 @@ def main():
   # Log into Breeze using API.
   breeze_api_key = args.breeze_api_key[0]
   breeze_url = args.breeze_url[0]
-  breeze_api = breeze.BreezeApi(breeze_url, breeze_api_key, debug=True,
+  breeze_api = breeze.BreezeApi(breeze_url, breeze_api_key, debug=args.debug,
                                 dry_run=args.dry_run)
   people = breeze_api.GetPeople();
   print 'Found %d people in Breeze database.' % len(people)
@@ -160,9 +173,41 @@ def main():
       lambda person: re.search(person['full_name'],
                                contribution.full_name,
                                re.IGNORECASE), people)
-    if person_match:
-      print 'Adding contribution for [%s] to fund [%s].' % (
-          contribution.full_name, contribution.fund)
+    if not person_match:
+      print 'WARNING: Unable to find a matching person in Breeze for [%s].' % (
+          contribution.full_name)
+      continue
+
+    else:
+      def IsDuplicateContribution(person_id, date, amount):
+        """Predicate that checks if a contribution is a duplicate."""
+        existing_contribution = breeze_api.ListContributions(
+          start_date=date,
+          end_date=date,
+          person_id=person_id,
+          amount_min=amount,
+          amount_max=amount)
+        paid_on_dates = [datetime.strptime(x['paid_on'],
+                         '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
+                          for x in existing_contribution]
+        if date in paid_on_dates:
+          return True
+        else:
+          return False
+      if IsDuplicateContribution(date=contribution.date_as_YYYYMMDD,
+                                 person_id=person_match[0]['id'],
+                                 amount=contribution.amount):
+        print 'Skipping duplicate contribution for [%s] on [%s] for [%s]' % (
+            contribution.full_name,
+            contribution.date_as_YYYYMMDD,
+            contribution.amount)
+        continue
+
+      print ('Adding contribution for [%s] to fund [%s] in the amount of '
+            '[%s] paid on [%s].') % (contribution.full_name,
+                                     contribution.fund,
+                                     contribution.amount,
+                                     contribution.date_as_YYYYMMDD)
 
       # Add the contribution on the matching person's Breeze profile.
       breeze_api.AddContribution(
@@ -175,9 +220,6 @@ def main():
         amount=contribution.amount,
         group=contribution.date)
 
-    if not person_match:
-      print 'WARNING: Unable to find a matching person in Breeze for [%s].' % (
-          full_name)
 
 if __name__ == '__main__':
     main()

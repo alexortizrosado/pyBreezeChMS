@@ -17,6 +17,7 @@ Usage:
 
 __author__ = 'alex@rohichurch.org (Alex Ortiz-Rosado)'
 
+import pprint
 import requests
 
 from utils import make_enum
@@ -90,7 +91,7 @@ class BreezeApi(object):
     url = '%s%s' % (self.breeze_url, endpoint)
 
     if self.debug:
-      print 'Making request to %s' % url
+      print 'INFO: Making request to %s' % url
     if self.dry_run:
       return
 
@@ -102,6 +103,9 @@ class BreezeApi(object):
     else:
       if not self._RequestSucceeded(response):
         raise BreezeError(response)
+      if self.debug:
+        pp = pprint.PrettyPrinter()
+        print pp.pprint(response)
       return response
 
   def _RequestSucceeded(self, response):
@@ -291,10 +295,7 @@ class BreezeApi(object):
       params.append('batch_name=%s' % batch_name)
     response = self._Request('%s/add?%s' % (ENDPOINTS.CONTRIBUTIONS,
                                             '&'.join(params)))
-    if response['success']:
-      return response['payment_id']
-    else:
-      raise BreezeError('Failed to delete contribution: ', response['errors'])
+    return response['payment_id']
 
   def EditContribution(self, payment_id=None, date=None, name=None,
                        person_id=None, uid=None, processor=None, method=None,
@@ -379,9 +380,7 @@ class BreezeApi(object):
     if batch_name:
       params.append('batch_name=%s' % batch_name)
     response = self._Request('%s/edit?%s' % (ENDPOINTS.CONTRIBUTIONS,
-                                            '&'.join(params)))
-    if not response['success']:
-      raise BreezeError('Failed to edit contribution: ', response['errors'])
+                                             '&'.join(params)))
     return response['payment_id']
 
   def DeleteContribution(self, payment_id):
@@ -398,8 +397,6 @@ class BreezeApi(object):
     """
     response = self._Request('%s/delete?payment_id=%s' % (
         ENDPOINTS.CONTRIBUTIONS, payment_id))
-    if not response['success']:
-      raise BreezeError('Failed to delete contribution: ', response['errors'])
     return response['payment_id']
 
   def ListContributions(self, start_date, end_date, person_id=None,
@@ -453,11 +450,8 @@ class BreezeApi(object):
       params.append('batches=%s' % '-'.join(batches))
     if forms:
       params.append('forms=%s' % '-'.join(forms))
-    response = self._Request('%s/list?%s' % (ENDPOINTS.CONTRIBUTIONS,
-                                            '&'.join(params)))
-    if not response['success']:
-      raise BreezeError('Failed to edit contribution: ', response['errors'])
-    return response
+    return self._Request('%s/list?%s' % (ENDPOINTS.CONTRIBUTIONS,
+                                         '&'.join(params)))
 
   def ListFunds(self, include_totals=False):
     """List all funds.
@@ -471,9 +465,5 @@ class BreezeApi(object):
     params = []
     if include_totals:
       params.append('include_totals=1')
-    return self._Request('%s/list?%s' % (
-        ENDPOINTS.FUNDS, '&'.join(params)))
-    if response['success']:
-      return response['payment_id']
-    else:
-      raise BreezeError('Failed to delete contribution: ', response['errors'])
+    return self._Request('%s/list?%s' % (ENDPOINTS.FUNDS,
+                                         '&'.join(params)))
