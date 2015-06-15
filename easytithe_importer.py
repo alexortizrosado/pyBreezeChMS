@@ -19,7 +19,6 @@ Usage:
 __author__ = 'alex@rohichurch.org (Alex Ortiz-Rosado)'
 
 import argparse
-import pydoc
 import logging
 import re
 import sys
