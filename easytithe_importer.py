@@ -12,11 +12,15 @@ Usage:
     --breeze_url https://demo.breezechms.com \\
     --breeze_api_key 5c2d2cbacg3 \\
     --start_date 01/01/2014 \\
-    --end_date 12/31/2014
+    --end_date 12/31/2014 \\
+    [--debug \\]
+    [--dry_run \\]
 """
 __author__ = 'alex@rohichurch.org (Alex Ortiz-Rosado)'
 
 import argparse
+import pydoc
+import logging
 import re
 import sys
 
@@ -50,14 +54,6 @@ class Contribution(object):
 
   @property
   def date(self):
-    formatted_date = datetime.strptime(
-        self._contribution['Date'], '%m/%d/%Y %I:%M:%S %p')
-    return formatted_date.strftime('%d-%m-%Y')
-
-  # TODO(alex): Remove this once the List Contributions and Add Contributions
-  # REST API support the same YYYYMMDD date format.
-  @property
-  def date_as_YYYYMMDD(self):
     formatted_date = datetime.strptime(
         self._contribution['Date'], '%m/%d/%Y %I:%M:%S %p')
     return formatted_date.strftime('%Y-%m-%d')
@@ -134,35 +130,53 @@ def PareArgs():
   args = parser.parse_args()
   return args
 
+def EnableConsoleLogging(default_level=logging.INFO):
+  logger = logging.getLogger()
+  console_logger = logging.StreamHandler()
+  console_logger.setLevel(default_level)
+
+  formatter = logging.Formatter(
+      '%(asctime)s [%(levelname)8s] %(filename)s:%(lineno)s - %(message)s ',
+      '%Y-%m-%d %H:%M:%S')
+  console_logger.setFormatter(formatter)
+
+  logger.addHandler(console_logger)
+  logging.Formatter()
+  logger.setLevel(default_level)
+
 def main():
   args = PareArgs()
+  if args.debug:
+    EnableConsoleLogging(logging.DEBUG)
+  else:
+    EnableConsoleLogging()
   start_date = args.start_date[0]
   end_date = args.end_date[0]
 
   # Log into EasyTithe and get all contributions for date range.
   username = args.username[0]
   password = args.password[0]
-  print 'Connecting to EasyTithe [%s:%s]' % (username, password)
+  logging.info('Connecting to EasyTithe as [%s]', username)
   et = easytithe.EasyTithe(username, password)
   contributions = [
       Contribution(contribution) for contribution in et.GetContributions(
           start_date, end_date)]
 
   if not contributions:
-    print 'No contributions found between %s and %s.' % (start_date, end_date)
+    logging.info('No contributions found between %s and %s.', start_date, end_date)
     sys.exit(0)
 
-  print 'Found %s contributions between %s and %s.' % (len(contributions),
-                                                      start_date,
-                                                      end_date)
+  logging.info('Found %s contributions between %s and %s.', len(contributions),
+                                                            start_date,
+                                                            end_date)
 
   # Log into Breeze using API.
   breeze_api_key = args.breeze_api_key[0]
   breeze_url = args.breeze_url[0]
-  breeze_api = breeze.BreezeApi(breeze_url, breeze_api_key, debug=args.debug,
+  breeze_api = breeze.BreezeApi(breeze_url, breeze_api_key,
                                 dry_run=args.dry_run)
   people = breeze_api.GetPeople();
-  print 'Found %d people in Breeze database.' % len(people)
+  logging.info('Found %d people in Breeze database.', len(people))
 
   for person in people:
     person['full_name'] = '%s %s' % (person['force_first_name'].strip(),
@@ -174,40 +188,31 @@ def main():
                                contribution.full_name,
                                re.IGNORECASE), people)
     if not person_match:
-      print 'WARNING: Unable to find a matching person in Breeze for [%s].' % (
+      logging.warning('Unable to find a matching person in Breeze for [%s].',
           contribution.full_name)
       continue
 
     else:
       def IsDuplicateContribution(person_id, date, amount):
         """Predicate that checks if a contribution is a duplicate."""
-        existing_contribution = breeze_api.ListContributions(
-          start_date=date,
-          end_date=date,
-          person_id=person_id,
-          amount_min=amount,
-          amount_max=amount)
-        paid_on_dates = [datetime.strptime(x['paid_on'],
-                         '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d')
-                          for x in existing_contribution]
-        if date in paid_on_dates:
-          return True
-        else:
-          return False
-      if IsDuplicateContribution(date=contribution.date_as_YYYYMMDD,
+        return breeze_api.ListContributions(
+            start_date=date,
+            end_date=date,
+            person_id=person_id,
+            amount_min=amount,
+            amount_max=amount)
+
+      if IsDuplicateContribution(date=contribution.date,
                                  person_id=person_match[0]['id'],
                                  amount=contribution.amount):
-        print 'Skipping duplicate contribution for [%s] on [%s] for [%s]' % (
-            contribution.full_name,
-            contribution.date_as_YYYYMMDD,
-            contribution.amount)
+        logging.info('Skipping duplicate contribution for [%s] on [%s] '
+                     'for [%s]', contribution.full_name, contribution.date,
+                     contribution.amount)
         continue
 
-      print ('Adding contribution for [%s] to fund [%s] in the amount of '
-            '[%s] paid on [%s].') % (contribution.full_name,
-                                     contribution.fund,
-                                     contribution.amount,
-                                     contribution.date_as_YYYYMMDD)
+      logging.info('Adding contribution for [%s] to fund [%s] in the amount of '
+                   '[%s] paid on [%s].', contribution.full_name,
+                   contribution.fund, contribution.amount, contribution.date)
 
       # Add the contribution on the matching person's Breeze profile.
       breeze_api.AddContribution(

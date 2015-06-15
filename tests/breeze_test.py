@@ -296,8 +296,8 @@ class BreezeApiTestCase(unittest.TestCase):
         connection.url,
         '%s%s/list?%s' % (self.FAKE_SUBDOMAIN,
                       breeze.ENDPOINTS.CONTRIBUTIONS,
-                       '&'.join(['start_date=%s' % start_date,
-                                 'end_date=%s' % end_date,
+                       '&'.join(['start=%s' % start_date,
+                                 'end=%s' % end_date,
                                  'person_id=%s' % person_id,
                                  'include_family=1',
                                  'amount_min=%s' % amount_min,
@@ -313,9 +313,7 @@ class BreezeApiTestCase(unittest.TestCase):
     # Ensure that an error gets thrown if person_id is not
     # provided with include_family.
     self.assertRaises(breeze.BreezeError,
-        lambda: breeze_api.ListContributions(start_date='3-2-2015',
-                                             end_date='3-2-2015',
-                                             include_family=True))
+        lambda: breeze_api.ListContributions(include_family=True))
 
   def testDeleteContribution(self):
     payment_id = '12345'

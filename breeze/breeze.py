@@ -17,6 +17,7 @@ Usage:
 
 __author__ = 'alex@rohichurch.org (Alex Ortiz-Rosado)'
 
+import logging
 import pprint
 import requests
 
@@ -37,7 +38,7 @@ class BreezeError(Exception):
 class BreezeApi(object):
   """A wrapper for the Breeze REST API."""
 
-  def __init__(self, breeze_url, api_key, debug=False, dry_run=False,
+  def __init__(self, breeze_url, api_key, dry_run=False,
                connection=requests.Session()):
     """Instantiates the BreezeApi with your Breeze account information.
 
@@ -46,14 +47,12 @@ class BreezeApi(object):
       api_key: Unique Breeze API key. For instructions on finding your
                organizations API key, see:
                http://breezechms.com/docs#extensions_api
-      debug: Enable debug output.
       dry_run: Enable no-op mode, which disables requests from being made. When
                combined with debug, this allows debugging requests without
                affecting data in your Breeze account."""
 
     self.breeze_url = breeze_url
     self.api_key = api_key
-    self.debug = debug
     self.dry_run = dry_run
     self.connection = connection
 
@@ -90,8 +89,7 @@ class BreezeApi(object):
     kw = dict(params=params, headers=headers, timeout=timeout)
     url = '%s%s' % (self.breeze_url, endpoint)
 
-    if self.debug:
-      print 'INFO: Making request to %s' % url
+    logging.debug('Making request to %s', url)
     if self.dry_run:
       return
 
@@ -103,9 +101,7 @@ class BreezeApi(object):
     else:
       if not self._RequestSucceeded(response):
         raise BreezeError(response)
-      if self.debug:
-        pp = pprint.PrettyPrinter()
-        print pp.pprint(response)
+      logging.debug('JSON Response: %s', response)
       return response
 
   def _RequestSucceeded(self, response):
@@ -399,7 +395,7 @@ class BreezeApi(object):
         ENDPOINTS.CONTRIBUTIONS, payment_id))
     return response['payment_id']
 
-  def ListContributions(self, start_date, end_date, person_id=None,
+  def ListContributions(self, start_date=None, end_date=None, person_id=None,
                         include_family=False, amount_min=None, amount_max=None,
                         method_ids=None, fund_ids=None, envelope_number=None,
                         batches=None, forms=None):
@@ -428,8 +424,10 @@ class BreezeApi(object):
       BreezeError on malformed request.
     """
     params = []
-    params.append('start_date=%s' % start_date)
-    params.append('end_date=%s' % end_date)
+    if start_date:
+      params.append('start=%s' % start_date)
+    if end_date:
+      params.append('end=%s' % end_date)
     if person_id:
       params.append('person_id=%s' % person_id)
     if include_family:
