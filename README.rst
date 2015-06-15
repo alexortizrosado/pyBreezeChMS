@@ -32,4 +32,4 @@ To get a JSON of all people:
 
 .. code-block:: python
 
-    people = breeze_api.GetPeople()
+    people = breeze_api.get_people()

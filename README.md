@@ -25,5 +25,5 @@ To get a JSON of all people:
 
 ```python
 
-people = breeze_api.GetPeople()
+people = breeze_api.get_people()
 ```
