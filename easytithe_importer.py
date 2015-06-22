@@ -213,7 +213,7 @@ def main():
             if is_duplicate_contribution(date=contribution.date,
                                          person_id=person_match[0]['id'],
                                          amount=contribution.amount):
-                logging.info(
+                logging.warning(
                     'Skipping duplicate contribution for [%s] paid on [%s] '
                     'for [%s]', contribution.full_name, contribution.date,
                     contribution.amount)
