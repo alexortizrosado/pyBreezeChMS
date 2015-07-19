@@ -19,13 +19,18 @@ __author__ = 'alex@rohichurch.org (Alex Ortiz-Rosado)'
 
 import argparse
 import logging
+import os
 import re
 import sys
 
-from breeze import breeze
 from datetime import datetime
-from third_party.easytithe import easytithe
-
+import easytithe
+try:
+    from breeze import breeze
+except ImportError:
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 os.pardir))
+    from breeze import breeze
 
 class Contribution(object):
     """An object for storing a contribution from EasyTithe."""
