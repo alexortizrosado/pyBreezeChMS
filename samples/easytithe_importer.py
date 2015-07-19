@@ -24,7 +24,7 @@ import re
 import sys
 
 from datetime import datetime
-import easytithe
+from easytithe import easytithe
 try:
     from breeze import breeze
 except ImportError:
