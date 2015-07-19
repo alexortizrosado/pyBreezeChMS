@@ -27,3 +27,7 @@ To get a JSON of all people:
 
 people = breeze_api.get_people()
 ```
+
+## License
+
+Code released under the [Apache 2.0](https://github.com/aortiz32/pyBreezeChMS/blob/master/LICENSE) license.
