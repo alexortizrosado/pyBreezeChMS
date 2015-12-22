@@ -338,6 +338,46 @@ class BreezeApiTestCase(unittest.TestCase):
             '%s%s/list?include_totals=1' % (FAKE_SUBDOMAIN,
                                             breeze.ENDPOINTS.FUNDS))
 
+    def test_list_campaigns(self):
+        response = MockResponse(200, json.dumps([{
+            "id": "12345",
+            "name": "Building Campaign",
+            "number_of_pledges": 65,
+            "total_pledged": 13030,
+            "created_on": "2014-09-10 02:19:35"
+        }]))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertEquals(breeze_api.list_campaigns(),
+                          json.loads(response.content))
+        self.assertEquals(
+            connection.url,
+            '%s%s/list_campaigns' % (FAKE_SUBDOMAIN,
+                                            breeze.ENDPOINTS.PLEDGES))
+
+    def test_list_pledges(self):
+        response = MockResponse(200, json.dumps([{
+            "id": "12345",
+            "name": "Building Campaign",
+            "number_of_pledges": 65,
+            "total_pledged": 13030,
+            "created_on": "2014-09-10 02:19:35"
+        }]))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertEquals(breeze_api.list_pledges(campaign_id=329),
+                          json.loads(response.content))
+        self.assertEquals(
+            connection.url,
+            '%s%s/list_pledges?campaign_id=329' % (FAKE_SUBDOMAIN,
+                                            breeze.ENDPOINTS.PLEDGES))
+
 
 if __name__ == '__main__':
     unittest.main()

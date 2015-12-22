@@ -28,7 +28,8 @@ ENDPOINTS = make_enum(
     EVENTS='/api/events',
     PROFILE_FIELDS='/api/profile',
     CONTRIBUTIONS='/api/giving',
-    FUNDS='/api/funds')
+    FUNDS='/api/funds',
+    PLEDGES='/api/pledges')
 
 
 class BreezeError(Exception):
@@ -483,4 +484,24 @@ class BreezeApi(object):
         params = []
         if include_totals:
             params.append('include_totals=1')
-        return self._request('%s/list?%s' % (ENDPOINTS.FUNDS, '&'.join(params)))
+        return self._request('%s/list?%s' %
+                             (ENDPOINTS.FUNDS, '&'.join(params)))
+
+    def list_campaigns(self):
+        """List of campaigns.
+
+        Returns:
+          JSON response."""
+        return self._request('%s/list_campaigns' % (ENDPOINTS.PLEDGES))
+
+    def list_pledges(self, campaign_id):
+        """List of pledges within a campaign.
+
+        Args:
+          campaign_id: ID number of a campaign.
+
+        Returns:
+          JSON response."""
+        return self._request('%s/list_pledges?campaign_id=%s' % (
+            ENDPOINTS.PLEDGES, campaign_id
+        ))
