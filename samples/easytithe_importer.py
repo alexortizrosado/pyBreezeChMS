@@ -238,7 +238,8 @@ def main():
                 funds_json=('[{"name": "%s", "amount": "%s"}]' % (
                     contribution.fund, contribution.amount)),
                 amount=contribution.amount,
-                group=contribution.date)
+                group=contribution.date,
+                batch_name='EasyTithe (%s)' % contribution.date)
 
 
 if __name__ == '__main__':
