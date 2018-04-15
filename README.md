@@ -3,7 +3,7 @@ PyBreezeChMS
 
 Python interface to BreezeChMS REST API http://www.breezechms.com
 
-[![Build Status](https://travis-ci.org/alexortizrosado/pyBreezeChMS.svg?branch=master)](https://travis-ci.org/aortiz32/pyBreezeChMS) [![Coverage Status](https://coveralls.io/repos/alexortizrosado/pyBreezeChMS/badge.png)](https://coveralls.io/r/aortiz32/pyBreezeChMS)
+[![Build Status](https://travis-ci.org/alexortizrosado/pyBreezeChMS.svg?branch=master)](https://travis-ci.org/alexortizrosado/pyBreezeChMS) [![Coverage Status](https://coveralls.io/repos/alexortizrosado/pyBreezeChMS/badge.png)](https://coveralls.io/r/aortiz32/pyBreezeChMS)
 
 ## Installation
 
