@@ -1,7 +1,7 @@
-"""Python wrapper for Breeze ChMS API: http://breezechms.com/docs#extensions_api
+"""Python wrapper for Breeze ChMS API: http://www.breezechms.com/api
 
-The Breeze API allows churches to build custom functionality integrated with
-Breeze.
+This API wrapper allows churches to build custom functionality integrated with
+Breeze Church Management System.
 
 Usage:
   from breeze import breeze
@@ -15,7 +15,7 @@ Usage:
     print '%s %s' % (person['first_name'], person['last_name'])
 """
 
-__author__ = 'alex@rohichurch.org (Alex Ortiz-Rosado)'
+__author__ = 'alexortizrosado@gmail.com (Alex Ortiz-Rosado)'
 
 import logging
 import requests
@@ -46,13 +46,14 @@ class BreezeApi(object):
         """Instantiates the BreezeApi with your Breeze account information.
 
         Args:
-          breeze_url: Fully qualified domain for your organizations Breeze service.
+          breeze_url: Fully qualified domain for your organizations Breeze
+                      service.
           api_key: Unique Breeze API key. For instructions on finding your
                    organizations API key, see:
                    http://breezechms.com/docs#extensions_api
-          dry_run: Enable no-op mode, which disables requests from being made. When
-                   combined with debug, this allows debugging requests without
-                   affecting data in your Breeze account."""
+          dry_run: Enable no-op mode, which disables requests from being made.
+                   When combined with debug, this allows debugging requests
+                   without affecting data in your Breeze account."""
 
         self.breeze_url = breeze_url
         self.api_key = api_key
@@ -226,24 +227,26 @@ class BreezeApi(object):
           person_id: The Breeze ID of the donor. If unknown, use UID instead of
                      person id  (ie. 1234567)
           uid: The unique id of the person sent from the giving platform. This
-               should be used when the Breeze ID is unknown. Within Breeze a user
-               will be able to associate this ID with a given Breeze ID.
+               should be used when the Breeze ID is unknown. Within Breeze a
+               user will be able to associate this ID with a given Breeze ID.
                (ie. 9876543)
-          email: Email address of donor. If no person_id is provided, used to help
-                 automatically match the person to the correct profile.
+          email: Email address of donor. If no person_id is provided, used to
+                 help automatically match the person to the correct profile.
                  (ie. sample@breezechms.com)
           street_address: Donor's street address. If person_id is not provided,
-                          street_address will be used to help automatically match
-                          the person to the correct profile.  (ie. 123 Sample St)
-          processor: The name of the processor used to send the payment. Used in
-                     conjunction with uid. Not needed if using Breeze ID.
+                          street_address will be used to help automatically
+                          match the person to the correct profile.
+                          (ie. 123 Sample St)
+          processor: The name of the processor used to send the payment. Used
+                     in conjunction with uid. Not needed if using Breeze ID.
                      (ie. SimpleGive, BluePay, Stripe)
           method: The payment method. (ie. Check, Cash, Credit/Debit Online,
                   Credit/Debit Offline, Donated Goods (FMV), Stocks (FMV),
                   Direct Deposit)
-          funds_json: JSON string containing fund names and amounts. This allows
-                      splitting fund giving. The ID is optional. If present, it must
-                      match an existing fund ID and it will override the fund name.
+          funds_json: JSON string containing fund names and amounts. This
+                      allows splitting fund giving. The ID is optional. If
+                      present, it must match an existing fund ID and it will
+                      override the fund name.
                       ie. [ {
                               'id':'12345',
                               'name':'General Fund',
@@ -255,13 +258,16 @@ class BreezeApi(object):
                             }
                           ]
           amount: Total amount given. Must match sum of amount in funds_json.
-          group: This will create a new batch and enter all contributions with the
-                 same group into the new batch. Previous groups will be remembered
-                 and so they should be unique for every new batch. Use this if
-                 wanting to import into the next batch number in a series.
-          batch_number: The batch number to import contributions into. Use group
-                        instead if you want to import into the next batch number.
-          batch_name: The name of the batch. Can be used with batch number or group.
+          group: This will create a new batch and enter all contributions with
+                 the same group into the new batch. Previous groups will be
+                 remembered and so they should be unique for every new batch.
+                 Use this if wanting to import into the next batch number in a
+                 series.
+          batch_number: The batch number to import contributions into. Use
+                        group instead if you want to import into the next batch
+                        number.
+          batch_name: The name of the batch. Can be used with batch number or
+                      group.
 
         Returns:
           Payment Id.
@@ -319,24 +325,26 @@ class BreezeApi(object):
           person_id: The Breeze ID of the donor. If unknown, use UID instead of
                      person id  (ie. 1234567)
           uid: The unique id of the person sent from the giving platform. This
-               should be used when the Breeze ID is unknown. Within Breeze a user
-               will be able to associate this ID with a given Breeze ID.
+               should be used when the Breeze ID is unknown. Within Breeze a
+               user will be able to associate this ID with a given Breeze ID.
                (ie. 9876543)
-          email: Email address of donor. If no person_id is provided, used to help
-                 automatically match the person to the correct profile.
+          email: Email address of donor. If no person_id is provided, used to
+                 help automatically match the person to the correct profile.
                  (ie. sample@breezechms.com)
           street_address: Donor's street address. If person_id is not provided,
-                          street_address will be used to help automatically match
-                          the person to the correct profile.  (ie. 123 Sample St)
-          processor: The name of the processor used to send the payment. Used in
-                     conjunction with uid. Not needed if using Breeze ID.
+                          street_address will be used to help automatically
+                          match the person to the correct profile.
+                          (ie. 123 Sample St)
+          processor: The name of the processor used to send the payment. Used
+                     in conjunction with uid. Not needed if using Breeze ID.
                      (ie. SimpleGive, BluePay, Stripe)
           method: The payment method. (ie. Check, Cash, Credit/Debit Online,
                   Credit/Debit Offline, Donated Goods (FMV), Stocks (FMV),
                   Direct Deposit)
-          funds_json: JSON string containing fund names and amounts. This allows
-                      splitting fund giving. The ID is optional. If present, it must
-                      match an existing fund ID and it will override the fund name.
+          funds_json: JSON string containing fund names and amounts. This
+                      allows splitting fund giving. The ID is optional. If
+                      present, it must match an existing fund ID and it will
+                      override the fund name.
                       ie. [ {
                               'id':'12345',
                               'name':'General Fund',
@@ -348,13 +356,16 @@ class BreezeApi(object):
                             }
                           ]
           amount: Total amount given. Must match sum of amount in funds_json.
-          group: This will create a new batch and enter all contributions with the
-                 same group into the new batch. Previous groups will be remembered
-                 and so they should be unique for every new batch. Use this if
-                 wanting to import into the next batch number in a series.
-          batch_number: The batch number to import contributions into. Use group
-                        instead if you want to import into the next batch number.
-          batch_name: The name of the batch. Can be used with batch number or group.
+          group: This will create a new batch and enter all contributions with
+                 the same group into the new batch. Previous groups will be
+                 remembered and so they should be unique for every new batch.
+                 Use this if wanting to import into the next batch number in a
+                 series.
+          batch_number: The batch number to import contributions into. Use
+                        group instead if you want to import into the next batch
+                        number.
+          batch_name: The name of the batch. Can be used with batch number or
+                      group.
 
         Returns:
           Payment id.
