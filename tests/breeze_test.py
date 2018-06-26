@@ -13,10 +13,10 @@ from breeze import breeze
 class MockConnection(object):
     """Mock requests connection."""
 
-    def __init__(self, response):
-        self._url = None
-        self._params = None
-        self._headers = None
+    def __init__(self, response, url=None, params=None, headers=None):
+        self._url = url
+        self._params = params
+        self._headers = headers
         self._response = response
 
     def post(self, url, params, headers, timeout):
@@ -57,7 +57,13 @@ class MockResponse(object):
 FAKE_API_KEY = 'fak3ap1k3y'
 FAKE_SUBDOMAIN = 'https://demo.breezechms.com'
 
+
 class BreezeApiTestCase(unittest.TestCase):
+
+    def test_request_header_override(self):
+        response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
+        headers = {'Addtional-Header': 'Data'}
+        connection = MockConnection(response)
 
     def test_invalid_subdomain(self):
         self.assertRaises(breeze.BreezeError, lambda: breeze.BreezeApi(
