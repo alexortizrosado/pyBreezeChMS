@@ -32,6 +32,7 @@ except ImportError:
                                  os.pardir))
     from breeze import breeze
 
+
 class Contribution(object):
     """An object for storing a contribution from EasyTithe."""
 
@@ -82,6 +83,10 @@ class Contribution(object):
     def email_address(self):
         return self._contribution['Email']
 
+    @property
+    def uid(self):
+        return self._contribution['PersonID']
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -107,8 +112,8 @@ def parse_args():
         '-l', '--breeze_url',
         required=True,
         nargs='*',
-        help=
-        'Fully qualified doman name for your organizations Breeze subdomain.')
+        help=('Fully qualified doman name for your organizations Breeze '
+              'subdomain.'))
 
     parser.add_argument(
         '-s', '--start_date',
@@ -198,11 +203,27 @@ def main():
         person_match = [person for person in people
                         if re.search(person['full_name'],
                                      contribution.full_name, re.IGNORECASE)]
+
+        contribution_params = {
+            'date': contribution.date,
+            'name': contribution.full_name,
+            'uid': contribution.uid,
+            'method': 'Credit/Debit Online',
+            'funds_json': (
+                '[{"name": "%s", "amount": "%s"}]' % (contribution.fund,
+                                                      contribution.amount)),
+            'amount': contribution.amount,
+            'group': contribution.date,
+            'processor': 'EasyTithe',
+            'batch_name': 'EasyTithe (%s)' % contribution.date
+        }
+
         if not person_match:
             logging.warning(
-                'Unable to find a matching person in Breeze for [%s].',
+                'Unable to find a matching person in Breeze for [%s]. '
+                'Adding contribution to Breeze as Anonymous.',
                 contribution.full_name)
-            continue
+            breeze_api.add_contribution(**contribution_params)
 
         else:
 
@@ -227,20 +248,12 @@ def main():
 
             logging.info(
                 'Adding contribution for [%s] to fund [%s] in the amount of '
-                '[%s] paid on [%s].', contribution.full_name, contribution.fund,
-                contribution.amount, contribution.date)
+                '[%s] paid on [%s].', contribution.full_name,
+                contribution.fund, contribution.amount, contribution.date)
 
             # Add the contribution on the matching person's Breeze profile.
-            breeze_api.add_contribution(
-                date=contribution.date,
-                name=contribution.full_name,
-                person_id=person_match[0]['id'],
-                method='Credit/Debit Online',
-                funds_json=('[{"name": "%s", "amount": "%s"}]' % (
-                    contribution.fund, contribution.amount)),
-                amount=contribution.amount,
-                group=contribution.date,
-                batch_name='EasyTithe (%s)' % contribution.date)
+            contribution_params['person_id'] = person_match[0]['id']
+            breeze_api.add_contribution(**contribution_params)
 
 
 if __name__ == '__main__':
