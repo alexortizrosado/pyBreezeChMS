@@ -223,6 +223,7 @@ def main():
                     'for [%s]', contribution.full_name, contribution.date,
                     contribution.amount)
                 continue
+            logging.info('Person:[%s]', person_match)
 
             logging.info(
                 'Adding contribution for [%s] to fund [%s] in the amount of '

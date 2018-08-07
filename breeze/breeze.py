@@ -62,7 +62,7 @@ class BreezeApi(object):
 
         # TODO(alex): use urlparse to check url format.
         if not (self.breeze_url and self.breeze_url.startswith('https://') and
-                self.breeze_url.endswith('.breezechms.com')):
+                self.breeze_url.find('.breezechms.')):
             raise BreezeError('You must provide your breeze_url as ',
                               'subdomain.breezechms.com')
 
@@ -97,7 +97,7 @@ class BreezeApi(object):
         if self.dry_run:
             return
 
-        response = self.connection.post(url, **keywords)
+        response = self.connection.get(url, verify=False, **keywords)
         try:
             response = response.json()
         except requests.ConnectionError as error:
