@@ -83,6 +83,8 @@ class BreezeApi(object):
 
         Throws:
           BreezeError if connection or request fails."""
+        if headers is None:
+            headers = {}
         headers.update({
           'Content-Type': 'application/json',
           'Api-Key': self.api_key}
