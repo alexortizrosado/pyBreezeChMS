@@ -96,6 +96,7 @@ class BreezeApi(object):
         url = '%s%s' % (self.breeze_url, endpoint)
 
         logging.debug('Making request to %s', url)
+        logging.debug('Headers => %s', headers)
         if self.dry_run:
             return
 
