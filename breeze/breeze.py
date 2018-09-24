@@ -9,7 +9,7 @@ Usage:
   breeze_api = breeze.BreezeApi(
       breeze_url='https://demo.breezechms.com',
       api_key='5c2d2cbacg3...')
-  people = breeze_api.GetPeople();
+  people = breeze_api.get_people();
 
   for person in people:
     print '%s %s' % (person['first_name'], person['last_name'])

@@ -25,6 +25,14 @@ class MockConnection(object):
         self._headers = headers
         self._timeout = timeout
         return self._response
+        
+    def get(self, url, verify, params, headers, timeout):
+        self._url = url
+        self._verify = verify
+        self._params = params
+        self._headers = headers
+        self._timeout = timeout
+        return self._response
 
     @property
     def url(self):
@@ -62,8 +70,17 @@ class BreezeApiTestCase(unittest.TestCase):
 
     def test_request_header_override(self):
         response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
-        headers = {'Addtional-Header': 'Data'}
         connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+            
+        headers = {'Additional-Header': 'Data'}
+        breeze_api._request('endpoint', headers=headers)
+        self.assertDictContainsSubset(headers, connection._headers)
+        
+
 
     def test_invalid_subdomain(self):
         self.assertRaises(breeze.BreezeError, lambda: breeze.BreezeApi(
