@@ -202,7 +202,8 @@ def main():
     for contribution in contributions:
         person_match = [person for person in people
                         if re.search(person['full_name'],
-                                     contribution.full_name, re.IGNORECASE)]
+                                     contribution.full_name, re.IGNORECASE) and 
+                        person['full_name'] != ' ']
 
         contribution_params = {
             'date': contribution.date,
