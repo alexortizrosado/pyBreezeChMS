@@ -55,6 +55,10 @@ class Contribution(object):
     @property
     def full_name(self):
         return '%s %s' % (self.first_name, self.last_name)
+        
+    @property
+    def name(self):
+        return self._contribution['Name']
 
     @property
     def date(self):
@@ -207,7 +211,7 @@ def main():
 
         contribution_params = {
             'date': contribution.date,
-            'name': contribution.full_name,
+            'name': contribution.name,
             'uid': contribution.uid,
             'method': 'Credit/Debit Online',
             'funds_json': (

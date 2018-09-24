@@ -100,7 +100,7 @@ class BreezeApi(object):
         if self.dry_run:
             return
 
-        response = self.connection.get(url, verify=False, **keywords)
+        response = self.connection.get(url, verify=True, **keywords)
         try:
             response = response.json()
         except requests.ConnectionError as error:
