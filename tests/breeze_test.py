@@ -13,14 +13,22 @@ from breeze import breeze
 class MockConnection(object):
     """Mock requests connection."""
 
-    def __init__(self, response):
-        self._url = None
-        self._params = None
-        self._headers = None
+    def __init__(self, response, url=None, params=None, headers=None):
+        self._url = url
+        self._params = params
+        self._headers = headers
         self._response = response
 
     def post(self, url, params, headers, timeout):
         self._url = url
+        self._params = params
+        self._headers = headers
+        self._timeout = timeout
+        return self._response
+        
+    def get(self, url, verify, params, headers, timeout):
+        self._url = url
+        self._verify = verify
         self._params = params
         self._headers = headers
         self._timeout = timeout
@@ -57,7 +65,22 @@ class MockResponse(object):
 FAKE_API_KEY = 'fak3ap1k3y'
 FAKE_SUBDOMAIN = 'https://demo.breezechms.com'
 
+
 class BreezeApiTestCase(unittest.TestCase):
+
+    def test_request_header_override(self):
+        response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+            
+        headers = {'Additional-Header': 'Data'}
+        breeze_api._request('endpoint', headers=headers)
+        self.assertDictContainsSubset(headers, connection._headers)
+        
+
 
     def test_invalid_subdomain(self):
         self.assertRaises(breeze.BreezeError, lambda: breeze.BreezeApi(

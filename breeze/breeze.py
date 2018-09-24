@@ -9,7 +9,7 @@ Usage:
   breeze_api = breeze.BreezeApi(
       breeze_url='https://demo.breezechms.com',
       api_key='5c2d2cbacg3...')
-  people = breeze_api.GetPeople();
+  people = breeze_api.get_people();
 
   for person in people:
     print '%s %s' % (person['first_name'], person['last_name'])
@@ -62,7 +62,7 @@ class BreezeApi(object):
 
         # TODO(alex): use urlparse to check url format.
         if not (self.breeze_url and self.breeze_url.startswith('https://') and
-                self.breeze_url.endswith('.breezechms.com')):
+                self.breeze_url.find('.breezechms.')):
             raise BreezeError('You must provide your breeze_url as ',
                               'subdomain.breezechms.com')
 
@@ -83,8 +83,12 @@ class BreezeApi(object):
 
         Throws:
           BreezeError if connection or request fails."""
-
-        headers = {'Content-Type': 'application/json', 'Api-Key': self.api_key}
+        if headers is None:
+            headers = {}
+        headers.update({
+          'Content-Type': 'application/json',
+          'Api-Key': self.api_key}
+          )
 
         if params is None:
             params = {}
@@ -95,7 +99,7 @@ class BreezeApi(object):
         if self.dry_run:
             return
 
-        response = self.connection.post(url, **keywords)
+        response = self.connection.get(url, verify=False, **keywords)
         try:
             response = response.json()
         except requests.ConnectionError as error:
