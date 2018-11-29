@@ -112,7 +112,7 @@ class BreezeApi(object):
 
     def _request_succeeded(self, response):
         """Predicate to ensure that the HTTP request succeeded."""
-        return not (('error' in response) or ('errorCode' in response))
+        return not (('errors' in response) or ('errorCode' in response))
 
     def get_people(self, limit=None, offset=None, details=False):
         """List people from your database.
