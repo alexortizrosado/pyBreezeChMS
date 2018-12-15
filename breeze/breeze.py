@@ -20,7 +20,7 @@ __author__ = 'alexortizrosado@gmail.com (Alex Ortiz-Rosado)'
 import logging
 import requests
 
-from utils import make_enum
+from .utils import make_enum
 
 ENDPOINTS = make_enum(
     'BreezeApiURL',
