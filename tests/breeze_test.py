@@ -25,7 +25,7 @@ class MockConnection(object):
         self._headers = headers
         self._timeout = timeout
         return self._response
-        
+
     def get(self, url, verify, params, headers, timeout):
         self._url = url
         self._verify = verify
@@ -62,6 +62,7 @@ class MockResponse(object):
     def raise_for_status(self):
         raise Exception('Fake HTTP Error')
 
+
 FAKE_API_KEY = 'fak3ap1k3y'
 FAKE_SUBDOMAIN = 'https://demo.breezechms.com'
 
@@ -75,12 +76,12 @@ class BreezeApiTestCase(unittest.TestCase):
             breeze_url=FAKE_SUBDOMAIN,
             api_key=FAKE_API_KEY,
             connection=connection)
-            
+
         headers = {'Additional-Header': 'Data'}
         breeze_api._request('endpoint', headers=headers)
-        self.assertDictContainsSubset(headers, connection._headers)
-        
-
+        self.assertTrue(
+            set(headers.items()).issubset(
+                set(connection._headers.items())))
 
     def test_invalid_subdomain(self):
         self.assertRaises(breeze.BreezeError, lambda: breeze.BreezeApi(
@@ -112,11 +113,12 @@ class BreezeApiTestCase(unittest.TestCase):
             connection=connection)
 
         breeze_api.get_people(limit=1, offset=1, details=True)
-        self.assertEquals(
+        self.assertEqual(
             connection.url,
             '%s%s/?%s' % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.PEOPLE,
                           '&'.join(['limit=1', 'offset=1', 'details=1'])))
-        self.assertEquals(breeze_api.get_people(), json.loads(response.content))
+        self.assertEqual(
+            breeze_api.get_people(), json.loads(response.content))
 
     def test_get_profile_fields(self):
         response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
@@ -138,7 +140,7 @@ class BreezeApiTestCase(unittest.TestCase):
 
         person_id = '123456'
         breeze_api.get_person_details(person_id)
-        self.assertEquals(
+        self.assertEqual(
             connection.url, '%s%s/%s' % (FAKE_SUBDOMAIN,
                                          breeze.ENDPOINTS.PEOPLE, person_id))
         self.assertEqual(breeze_api.get_person_details(person_id),
@@ -155,7 +157,7 @@ class BreezeApiTestCase(unittest.TestCase):
         start_date = '3-1-2014'
         end_date = '3-7-2014'
         breeze_api.get_events(start_date=start_date, end_date=end_date)
-        self.assertEquals(
+        self.assertEqual(
             connection.url, '%s%s/?%s' % (FAKE_SUBDOMAIN,
                                           breeze.ENDPOINTS.EVENTS,
                                           '&'.join(['start=%s' % start_date,
@@ -216,14 +218,21 @@ class BreezeApiTestCase(unittest.TestCase):
             group=group,
             batch_number=batch_number,
             batch_name=batch_name)
-        self.assertEquals(
+        self.assertEqual(
             connection.url, '%s%s/add?%s' %
             (FAKE_SUBDOMAIN, breeze.ENDPOINTS.CONTRIBUTIONS, '&'.join(
-                ['date=%s' % date, 'name=%s' % name, 'person_id=%s' % person_id,
-                 'uid=%s' % uid, 'processor=%s' % processor, 'method=%s'
-                 % method, 'funds_json=%s' % funds_json, 'amount=%s' % amount,
-                 'group=%s' % group, 'batch_number=%s' % batch_number,
-                 'batch_name=%s' % batch_name])))
+                ['date=%s' % date,
+                 'name=%s' % name,
+                 'person_id=%s' % person_id,
+                 'uid=%s' % uid,
+                 'processor=%s' % processor,
+                 'method=%s' % method,
+                 'funds_json=%s' % funds_json,
+                 'amount=%s' % amount,
+                 'group=%s' % group,
+                 'batch_number=%s' % batch_number,
+                 'batch_name=%s' % batch_name
+                 ])))
         self.assertEqual(breeze_api.add_contribution(), payment_id)
 
     def test_edit_contribution(self):
@@ -262,15 +271,23 @@ class BreezeApiTestCase(unittest.TestCase):
             group=group,
             batch_number=batch_number,
             batch_name=batch_name)
-        self.assertEquals(
+        self.assertEqual(
             connection.url, '%s%s/edit?%s' %
             (FAKE_SUBDOMAIN, breeze.ENDPOINTS.CONTRIBUTIONS,
-             '&'.join(['payment_id=%s' % payment_id, 'date=%s' % date, 'name=%s'
-                       % name, 'person_id=%s' % person_id, 'uid=%s' % uid,
-                       'processor=%s' % processor, 'method=%s' % method,
-                       'funds_json=%s' % funds_json, 'amount=%s' % amount,
-                       'group=%s' % group, 'batch_number=%s' % batch_number,
-                       'batch_name=%s' % batch_name])))
+             '&'.join(
+                ['payment_id=%s' % payment_id,
+                 'date=%s' % date,
+                 'name=%s' % name,
+                 'person_id=%s' % person_id,
+                 'uid=%s' % uid,
+                 'processor=%s' % processor,
+                 'method=%s' % method,
+                 'funds_json=%s' % funds_json,
+                 'amount=%s' % amount,
+                 'group=%s' % group,
+                 'batch_number=%s' % batch_number,
+                 'batch_name=%s' % batch_name
+                 ])))
         self.assertEqual(breeze_api.edit_contribution(), new_payment_id)
 
     def test_list_contributions(self):
@@ -306,7 +323,7 @@ class BreezeApiTestCase(unittest.TestCase):
             envelope_number=envelope_number,
             batches=batches,
             forms=forms)
-        self.assertEquals(
+        self.assertEqual(
             connection.url, '%s%s/list?%s' %
             (FAKE_SUBDOMAIN, breeze.ENDPOINTS.CONTRIBUTIONS, '&'.join(
                 ['start=%s' % start_date, 'end=%s' % end_date, 'person_id=%s' %
@@ -334,9 +351,9 @@ class BreezeApiTestCase(unittest.TestCase):
             breeze_url=FAKE_SUBDOMAIN,
             api_key=FAKE_API_KEY,
             connection=connection)
-        self.assertEquals(breeze_api.delete_contribution(payment_id=payment_id),
-                          payment_id)
-        self.assertEquals(
+        self.assertEqual(
+            breeze_api.delete_contribution(payment_id=payment_id), payment_id)
+        self.assertEqual(
             connection.url, '%s%s/delete?payment_id=%s' % (
                 FAKE_SUBDOMAIN, breeze.ENDPOINTS.CONTRIBUTIONS, payment_id
             ))
@@ -354,9 +371,9 @@ class BreezeApiTestCase(unittest.TestCase):
             breeze_url=FAKE_SUBDOMAIN,
             api_key=FAKE_API_KEY,
             connection=connection)
-        self.assertEquals(breeze_api.list_funds(include_totals=True),
-                          json.loads(response.content))
-        self.assertEquals(
+        self.assertEqual(breeze_api.list_funds(include_totals=True),
+                         json.loads(response.content))
+        self.assertEqual(
             connection.url,
             '%s%s/list?include_totals=1' % (FAKE_SUBDOMAIN,
                                             breeze.ENDPOINTS.FUNDS))
@@ -374,12 +391,12 @@ class BreezeApiTestCase(unittest.TestCase):
             breeze_url=FAKE_SUBDOMAIN,
             api_key=FAKE_API_KEY,
             connection=connection)
-        self.assertEquals(breeze_api.list_campaigns(),
-                          json.loads(response.content))
-        self.assertEquals(
+        self.assertEqual(breeze_api.list_campaigns(),
+                         json.loads(response.content))
+        self.assertEqual(
             connection.url,
             '%s%s/list_campaigns' % (FAKE_SUBDOMAIN,
-                                            breeze.ENDPOINTS.PLEDGES))
+                                     breeze.ENDPOINTS.PLEDGES))
 
     def test_list_pledges(self):
         response = MockResponse(200, json.dumps([{
@@ -394,12 +411,12 @@ class BreezeApiTestCase(unittest.TestCase):
             breeze_url=FAKE_SUBDOMAIN,
             api_key=FAKE_API_KEY,
             connection=connection)
-        self.assertEquals(breeze_api.list_pledges(campaign_id=329),
-                          json.loads(response.content))
-        self.assertEquals(
+        self.assertEqual(breeze_api.list_pledges(campaign_id=329),
+                         json.loads(response.content))
+        self.assertEqual(
             connection.url,
             '%s%s/list_pledges?campaign_id=329' % (FAKE_SUBDOMAIN,
-                                            breeze.ENDPOINTS.PLEDGES))
+                                                   breeze.ENDPOINTS.PLEDGES))
 
 
 if __name__ == '__main__':
