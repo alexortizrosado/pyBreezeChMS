@@ -15,7 +15,7 @@ def make_enum(enum_type='enum', base_classes=None, methods=None, **attrs):
     methods = {}
 
   base_classes = base_classes + (object,)
-  for k, v in methods.iteritems():
+  for k, v in methods.items():
     methods[k] = classmethod(v)
 
   attrs['enums'] = attrs.copy()
