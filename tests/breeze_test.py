@@ -398,6 +398,24 @@ class BreezeApiTestCase(unittest.TestCase):
             '%s%s/list_campaigns' % (FAKE_SUBDOMAIN,
                                      breeze.ENDPOINTS.PLEDGES))
 
+    def test_false_response(self):
+        response = MockResponse(200, json.dumps(False))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertRaises(breeze.BreezeError, lambda: breeze_api.event_check_in('1', '2'))
+
+    def test_errors_response(self):
+        response = MockResponse(200, json.dumps({'errors': 'Some Errors'}))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertRaises(breeze.BreezeError, lambda: breeze_api.event_check_in('1', '2'))
+
     def test_list_pledges(self):
         response = MockResponse(200, json.dumps([{
             "id": "12345",
