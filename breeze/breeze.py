@@ -29,7 +29,8 @@ ENDPOINTS = make_enum(
     PROFILE_FIELDS='/api/profile',
     CONTRIBUTIONS='/api/giving',
     FUNDS='/api/funds',
-    PLEDGES='/api/pledges')
+    PLEDGES='/api/pledges',
+    ACCOUNT_SUMMARY='/api/account/summary')
 
 
 class BreezeError(Exception):
@@ -116,6 +117,35 @@ class BreezeApi(object):
             return response
         else:
             return not (('errors' in response) or ('errorCode' in response))
+
+    def get_account_summary(self):
+        """Retrieve the details for a specific account using the API key 
+          and URL. It can also work to see if the key and URL are valid.
+
+        Returns:
+          JSON response. For example:
+          {
+            "id":"1234",
+            "name":"Grace Church",
+            "subdomain":"gracechurchdemo",
+            "status":"1",
+            "created_on":"2018-09-10 09:19:35",
+            "details":{
+                "timezone":"America\/New_York",
+                "country":{
+                    "id":"2",
+                    "name":"United States of America",
+                    "abbreviation":"USA",
+                    "abbreviation_2":"US",
+                    "currency":"USD",
+                    "currency_symbol":"$",
+                    "date_format":"MDY",
+                    "sms_prefix":"1"
+                }
+            }
+          }
+          """
+        return self._request(ENDPOINTS.ACCOUNT_SUMMARY)
 
     def get_people(self, limit=None, offset=None, details=False):
         """List people from your database.
