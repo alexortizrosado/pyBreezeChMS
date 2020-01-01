@@ -4,12 +4,14 @@ python:
   - 3.6
 install:
   - pip install -r requirements.txt
-  - sudo rm -rf /dev/shm && sudo ln -s /run/shm /dev/shm
-script: coverage run --source=breeze setup.py test
+
+script:
+  - coverage run --source=breeze setup.py test
+
 notifications:
   email:
     recipients:
-      - aortiz32@gmail.com
+      - alex@breezechms.com 
     on_success: [always|never|change] # default: change
     on_failure: [always|never|change] # default: always
 
