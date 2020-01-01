@@ -30,8 +30,7 @@ ENDPOINTS = make_enum(
     CONTRIBUTIONS='/api/giving',
     FUNDS='/api/funds',
     PLEDGES='/api/pledges',
-    TAGS='/api/tags/list_tags/',
-    TAG_FOLDERS='/api/tags/list_folders/',
+    TAGS='/api/tags',
     ACCOUNT_SUMMARY='/api/account/summary')
 
 
@@ -584,10 +583,9 @@ class BreezeApi(object):
         params = []
         if folder:
             params.append('folder_id=%s' % folder)
-        return self._request('%s/?%s' % (ENDPOINTS.TAGS, '&'.join(params)))
+        return self._request('%s/%s/?%s' % (ENDPOINTS.TAGS, 'list_tags', '&'.join(params)))
 
-    def get_folders(api):
-        return api._request(ENDPOINTS.TAG_FOLDERS)
+    def get_tag_folders(api):
         """List of tag folders
 
         Args: (none)
@@ -620,5 +618,6 @@ class BreezeApi(object):
                  "created_on":"2018-12-15 18:11:31"
              }
              ]"""
+        return api._request("%s/%s" % (ENDPOINTS.TAGS, "list_folders"))
 
 
