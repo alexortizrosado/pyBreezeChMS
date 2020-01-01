@@ -30,6 +30,7 @@ ENDPOINTS = make_enum(
     CONTRIBUTIONS='/api/giving',
     FUNDS='/api/funds',
     PLEDGES='/api/pledges',
+    TAGS='/api/tags',
     ACCOUNT_SUMMARY='/api/account/summary')
 
 
@@ -553,3 +554,70 @@ class BreezeApi(object):
         return self._request('%s/list_pledges?campaign_id=%s' % (
             ENDPOINTS.PLEDGES, campaign_id
         ))
+
+    def get_tags(self, folder=None):
+        """List of tags
+
+        Args:
+          folder: If set, only return tags in this folder id
+
+        Returns:
+          JSON response. For example:
+            [
+            {
+                "id":"523928",
+                "name":"4th & 5th",
+                "created_on":"2018-09-10 09:19:40",
+                "folder_id":"1539"
+            },
+            {
+                "id":"51994",
+                "name":"6th Grade",
+                "created_on":"2018-02-06 06:40:40",
+                "folder_id":"1539"
+            },
+            { ... }
+            ]"""
+
+
+        params = []
+        if folder:
+            params.append('folder_id=%s' % folder)
+        return self._request('%s/%s/?%s' % (ENDPOINTS.TAGS, 'list_tags', '&'.join(params)))
+
+    def get_tag_folders(api):
+        """List of tag folders
+
+        Args: (none)
+
+        Returns:
+          JSON response, for example:
+             [
+             {
+                 "id":"1234567",
+                 "parent_id":"0",
+                 "name":"All Tags",
+                 "created_on":"2018-06-05 18:12:34"
+             },
+             {
+                 "id":"8234253",
+                 "parent_id":"120425",
+                 "name":"Kids",
+                 "created_on":"2018-06-05 18:12:10"
+             },
+             {
+                 "id":"1537253",
+                 "parent_id":"5923042",
+                 "name":"Small Groups",
+                 "created_on":"2018-09-10 09:19:40"
+             },
+             {
+                 "id":"20033",
+                 "parent_id":"20031",
+                 "name":"Student Ministries",
+                 "created_on":"2018-12-15 18:11:31"
+             }
+             ]"""
+        return api._request("%s/%s" % (ENDPOINTS.TAGS, "list_folders"))
+
+
