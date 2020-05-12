@@ -620,4 +620,54 @@ class BreezeApi(object):
              ]"""
         return api._request("%s/%s" % (ENDPOINTS.TAGS, "list_folders"))
 
+    def update_tag(self, 
+                   person_id=None,
+                   tag_id=None):
+        """
+        Update a person's tag/s.
+        
+        params:
+        
+        person_id: an existing person's user id
+        
+        tag_id: the id number of the tag you want to assign to the user
+        
+        output: true or false upon success or failure of tag update
+        """
+        params = []
+                   
+        params.append('person_id=%s' % person_id)           
+
+        params.append('tag_id=%s' % tag_id)
+
+        response = self._request('%s/assign?%s' %
+                             (ENDPOINTS.TAGS, '&'.join(params)))
+        
+        return response
+    
+    def delete_tag(self, 
+                   person_id=None,
+                   tag_id=None):
+        """
+        Delete a person's tag/s.
+        
+        params:
+        
+        person_id: an existing person's user id
+        
+        tag_id: the id number of the tag you want to assign to the user
+        
+        output: true or false upon success or failure of tag deletion
+        """
+        params = []
+                   
+        params.append('person_id=%s' % person_id)           
+
+        params.append('tag_id=%s' % tag_id)
+
+        response = self._request('%s/unassign?%s' %
+                             (ENDPOINTS.TAGS, '&'.join(params)))
+        
+        return response            
+
 
