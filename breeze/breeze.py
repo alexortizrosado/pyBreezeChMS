@@ -620,9 +620,9 @@ class BreezeApi(object):
              ]"""
         return api._request("%s/%s" % (ENDPOINTS.TAGS, "list_folders"))
 
-    def update_tag(self, 
-                   person_id=None,
-                   tag_id=None):
+    def assign_tag(self, 
+                   person_id,
+                   tag_id):
         """
         Update a person's tag/s.
         
@@ -645,9 +645,9 @@ class BreezeApi(object):
         
         return response
     
-    def delete_tag(self, 
-                   person_id=None,
-                   tag_id=None):
+    def unassign_tag(self, 
+                   person_id,
+                   tag_id):
         """
         Delete a person's tag/s.
         

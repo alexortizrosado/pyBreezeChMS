@@ -477,7 +477,39 @@ class BreezeApiTestCase(unittest.TestCase):
             "%s%s/list_folders" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS)
         )
 
+    def test_assign_tag(self):
+        person_id = '12345'
+        tag_id = '1234567'
+        response = MockResponse(200, json.dumps({
+            'success': True,
+             }))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertEqual(breeze_api.assign_tag(person_id, tag_id),
+                         json.loads(response.content))
+        self.assertEqual(
+            connection.url,
+            "%s%s/assign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))   
 
+    def test_unassign_tag(self):
+        person_id = '12345'
+        tag_id = '1234567'
+        response = MockResponse(
+            200, json.dumps({'success': True
+                             }))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertEqual(breeze_api.unassign_tag(person_id, tag_id),
+                         json.loads(response.content))
+        self.assertEqual(
+            connection.url,
+            "%s%s/unassign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))    
 
 if __name__ == '__main__':
     unittest.main()
