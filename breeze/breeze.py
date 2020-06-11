@@ -201,6 +201,67 @@ class BreezeApi(object):
           JSON response."""
         return self._request('%s/%s' % (ENDPOINTS.PEOPLE, str(person_id)))
 
+    def add_person(self, first_name, last_name, fields_json=None):
+        """Adds a new person into the database.
+
+        Args:
+          first_name: The first name of the person.
+          last_name: The first name of the person.
+          fields_json: JSON string representing an array of fields to update.
+                       Each array element must contain field id, field type, response,
+                       and in some cases, more information.
+                       ie. [ {
+                               "field_id":"929778337",
+                               "field_type":"email",
+                               "response":"true",
+                               "details":{
+                                    "address": "tony@starkindustries.com",
+                                    "is_private":1}
+                             }
+                           ].
+                       Obtain such field information from get_profile_fields() or
+                       use get_person_details() to see fields that already exist for a specific person.
+
+        Returns:
+          JSON response equivalent to get_person_details()."""
+
+        params = []
+        params.append('first=%s' % first_name)
+        params.append('last=%s' % last_name)
+        if fields_json:
+            params.append('fields_json=%s' % fields_json)
+
+        return self._request('%s/add?%s' % (ENDPOINTS.PEOPLE, '&'.join(params)))
+
+    def update_person(self, person_id, fields_json):
+        """Updates the details for a specific person in the database.
+
+        Args:
+          person_id: Unique id for a person in Breeze database.
+          fields_json: JSON string representing an array of fields to update.
+                       Each array element must contain field id, field type, response,
+                       and in some cases, more information.
+                       ie. [ {
+                               "field_id":"929778337",
+                               "field_type":"email",
+                               "response":"true",
+                               "details":{
+                                    "address": "tony@starkindustries.com",
+                                    "is_private":1}
+                             }
+                           ].
+                       Obtain such field information from get_profile_fields() or
+                       use get_person_details() to see fields that already exist for a specific person.
+
+
+        Returns:
+          JSON response equivalent to get_person_details(person_id)."""
+
+        return self._request(
+            '%s/update?person_id=%s&fields_json=%s' % (
+                ENDPOINTS.PEOPLE, person_id, fields_json
+            ))
+
     def get_events(self, start_date=None, end_date=None):
         """Retrieve all events for a given date range.
 
