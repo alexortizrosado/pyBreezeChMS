@@ -215,7 +215,7 @@ class BreezeApiTestCase(unittest.TestCase):
                                  'fields_json=%s' % fields_json])
                              )
         )
-        self.assertEqual(breeze_api.update_person(person_id, json.dumps(fields_json, separators=(',', ':'))),
+        self.assertEqual(breeze_api.update_person(person_id, fields_json),
                          json.loads(response.content))
 
     def test_get_events(self):
