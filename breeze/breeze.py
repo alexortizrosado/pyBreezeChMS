@@ -278,6 +278,38 @@ class BreezeApi(object):
             params.append('end=%s' % end_date)
         return self._request('%s/?%s' % (ENDPOINTS.EVENTS, '&'.join(params)))
 
+    def add_event(self, name, start_date, end_date=None, all_day=None, description=None, category_id=None, event_id=None):
+        """Add event for a given date range.
+
+        Args:
+          name: Name of event
+          start_date: Start datetimestamp (epoch time)
+          end_date: End datetimestamp (epoch time)
+          all_day: boolean
+          description: description of event (default none)
+          category id: which calendar your event is on (defaults to primary)
+          event id: series id
+
+        Returns:
+          JSON response."""
+          
+        params = []
+        if name:
+            params.append('name=%s' % name)
+        if start_date:
+            params.append('starts_on=%s' % start_date)
+        if end_date:
+            params.append('ends_on=%s' % end_date)
+        if all_day:
+            params.append('all_day=%s' % all_day)
+        if description:
+            params.append('description=%s' % description)
+        if category_id:
+            params.append('category_id=%s' % category_id)
+        if event_id:
+            params.append('event_id=%s' % event_id)
+        return self._request('%s/add?%s' % (ENDPOINTS.EVENTS, '&'.join(params)))
+
     def event_check_in(self, person_id, event_instance_id):
         """Checks in a person into an event.
 
