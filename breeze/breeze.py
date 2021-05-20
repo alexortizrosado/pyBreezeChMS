@@ -148,7 +148,7 @@ class BreezeApi(object):
           """
         return self._request(ENDPOINTS.ACCOUNT_SUMMARY)
 
-    def get_people(self, limit=None, offset=None, details=False):
+    def get_people(self, filter_json=None, limit=None, offset=None, details=False):
         """List people from your database.
 
         Args:
@@ -176,6 +176,8 @@ class BreezeApi(object):
           }"""
 
         params = []
+        if filter_json:
+            params.append('filter_json=%s' % filter_json)
         if limit:
             params.append('limit=%s' % limit)
         if offset:
