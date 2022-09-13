@@ -28,6 +28,12 @@ To get a JSON of all people:
 people = breeze_api.get_people()
 ```
 
+## Test
+    pip install python-coveralls
+    python -m unittest tests.breeze_test
+    coverage run --source=breeze setup.py test
+    coverage report
+
 ## How do I make a contribution?
 Never made an open source contribution before? Wondering how contributions work in the in our project? Here's a quick rundown!
 

@@ -31,7 +31,8 @@ ENDPOINTS = make_enum(
     FUNDS='/api/funds',
     PLEDGES='/api/pledges',
     TAGS='/api/tags',
-    ACCOUNT_SUMMARY='/api/account/summary')
+    ACCOUNT_SUMMARY='/api/account/summary',
+    FORMS='/api/forms')
 
 
 class BreezeError(Exception):
@@ -549,6 +550,41 @@ class BreezeApi(object):
             ENDPOINTS.CONTRIBUTIONS, payment_id
         ))
         return response['payment_id']
+
+    def list_form_entries(self, form_id, details=False):
+        """return entries for the given form
+
+        Args:
+          form_id:the ID of the form 
+          details: Option to return all information (slower) or just names.
+
+        returns:
+          JSON response. For example:
+          [
+		{
+			"id":"11",
+			"form_id":"15326",
+			"created_on":"2021-03-09 13:04:02",
+			"person_id":null,
+			"response":{
+			    "45":{
+				"id":"13",
+				"oid":"1512",
+				"first_name":"Zoe",
+				"last_name":"Washburne",
+				"created_on":"2021-03-09 13:04:03"
+			    },
+			    "46":"zwashburne@test.com",
+			    "47":"Red"
+			}
+		    },
+          ]"""
+
+        params = []
+        params.append('form_id=%s' % form_id)
+        if details:
+            params.append('details=1')
+        return self._request('%s/list_form_entries?%s' % (ENDPOINTS.FORMS, '&'.join(params)))
 
     def list_contributions(self,
                            start_date=None,
