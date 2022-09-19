@@ -17,6 +17,7 @@ Usage:
 
 __author__ = 'alexortizrosado@gmail.com (Alex Ortiz-Rosado)'
 
+import json
 import logging
 import requests
 
@@ -148,7 +149,7 @@ class BreezeApi(object):
           """
         return self._request(ENDPOINTS.ACCOUNT_SUMMARY)
 
-    def get_people(self, limit=None, offset=None, details=False):
+    def get_people(self, limit=None, offset=None, details=False, filter_json={}):
         """List people from your database.
 
         Args:
@@ -182,6 +183,8 @@ class BreezeApi(object):
             params.append('offset=%s' % offset)
         if details:
             params.append('details=1')
+        if filter_json:
+              params.append('filter_json=%s' % json.dumps(filter_json))
         return self._request('%s/?%s' % (ENDPOINTS.PEOPLE, '&'.join(params)))
 
     def get_profile_fields(self):
