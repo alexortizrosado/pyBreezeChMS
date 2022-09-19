@@ -188,7 +188,7 @@ class BreezeApiTestCase(unittest.TestCase):
         )
         self.assertEqual(breeze_api.update_person(person_id, '[]'),
                          json.loads(response.content))
-    
+
     def test_update_person_with_fields_json(self):
         response = MockResponse(200, json.dumps([{'person_id': 'Some Data.'}]))
         connection = MockConnection(response)
@@ -430,6 +430,31 @@ class BreezeApiTestCase(unittest.TestCase):
                 FAKE_SUBDOMAIN, breeze.ENDPOINTS.CONTRIBUTIONS, payment_id
             ))
 
+    def test_list_form_entries(self):
+        response = MockResponse(200, json.dumps([{
+            "102519456": {
+                "id": "102519456",
+                "oid": "51124",
+                "form_id": "582100",
+                "created_on": "2022-07-31 20:33:18",
+                "person_id": "10898096",
+                "response": {
+                  "person_id": ""
+                }
+              }
+        }]))
+        connection = MockConnection(response)
+        breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=connection)
+        self.assertEqual(breeze_api.list_form_entries(form_id=329),
+                         json.loads(response.content))
+        self.assertEqual(
+            connection.url,
+            '%s%s/list_form_entries?form_id=329' % (FAKE_SUBDOMAIN,
+                                                   breeze.ENDPOINTS.FORMS))
+
     def test_list_funds(self):
         response = MockResponse(200, json.dumps([{
             "id": "12345",
@@ -561,7 +586,7 @@ class BreezeApiTestCase(unittest.TestCase):
                          json.loads(response.content))
         self.assertEqual(
             connection.url,
-            "%s%s/assign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))   
+            "%s%s/assign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))
 
     def test_unassign_tag(self):
         person_id = '12345'
@@ -578,7 +603,7 @@ class BreezeApiTestCase(unittest.TestCase):
                          json.loads(response.content))
         self.assertEqual(
             connection.url,
-            "%s%s/unassign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))    
+            "%s%s/unassign?person_id=%s&tag_id=%s" % (FAKE_SUBDOMAIN, breeze.ENDPOINTS.TAGS, person_id, tag_id))
 
 if __name__ == '__main__':
     unittest.main()
