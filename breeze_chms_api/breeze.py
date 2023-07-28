@@ -32,7 +32,8 @@ ENDPOINTS = make_enum(
     PLEDGES='/api/pledges',
     TAGS='/api/tags',
     ACCOUNT_SUMMARY='/api/account/summary',
-    FORMS='/api/forms')
+    FORMS='/api/forms',
+    )
 
 
 class BreezeError(Exception):

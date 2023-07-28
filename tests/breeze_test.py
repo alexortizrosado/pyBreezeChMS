@@ -7,7 +7,7 @@ Usage:
 import json
 import unittest
 
-from breeze import breeze
+from breeze_chms_api import breeze
 
 
 class MockConnection(object):
@@ -18,6 +18,8 @@ class MockConnection(object):
         self._params = params
         self._headers = headers
         self._response = response
+        self._timeout = None
+        self._verify = None
 
     def post(self, url, params, headers, timeout):
         self._url = url
@@ -181,7 +183,7 @@ class BreezeApiTestCase(unittest.TestCase):
         breeze_api.update_person(person_id, '[]')
         self.assertEqual(
             connection.url, '%s%s/update?%s' %
-                            (FAKE_SUBDOMAIN, breeze.ENDPOINTS.PEOPLE, '&'.join(
+                            (FAKE_SUBDOMAIN, breeze.ENDPOINTS.PEOPLE.value, '&'.join(
                                 ['person_id=%s' % person_id,
                                  'fields_json=%s' % '[]'])
                              )
@@ -210,7 +212,7 @@ class BreezeApiTestCase(unittest.TestCase):
         breeze_api.update_person(person_id, fields_json)
         self.assertEqual(
             connection.url, '%s%s/update?%s' %
-                            (FAKE_SUBDOMAIN, breeze.ENDPOINTS.PEOPLE, '&' . join(
+                            (FAKE_SUBDOMAIN, breeze.ENDPOINTS.PEOPLE.value, '&' . join(
                                 ['person_id=%s' % person_id,
                                  'fields_json=%s' % fields_json])
                              )
