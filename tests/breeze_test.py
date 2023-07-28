@@ -81,8 +81,8 @@ class BreezeApiTestCase(unittest.TestCase):
                      url: str,
                      endpoint: ENDPOINTS,
                      command: str = '',
-                     args: dict = {},
-                     arg_alias: dict={}):
+                     args: dict = dict(),
+                     arg_alias: dict = dict()):
         base, extra = url.split('?')
         expect_url = f'{FAKE_SUBDOMAIN}/api/{endpoint.value}/{command}'
         self.assertEqual(base, expect_url, f'Expected {expect_url}, got {base}')
@@ -149,7 +149,7 @@ class BreezeApiTestCase(unittest.TestCase):
                 connection=connection)
 
         self.assertRaises(breeze.BreezeError,
-                           lambda: breeze_api.get_profile_fields())
+                          lambda: breeze_api.get_profile_fields())
 
     def test_missing_api_key(self):
         self.assertRaises(
@@ -193,7 +193,7 @@ class BreezeApiTestCase(unittest.TestCase):
             "status": "1",
             "created_on": "2018-09-10 09:19:35",
             "details": {
-                "timezone": "America\/New_York",
+                "timezone": "America/New_York",
                 "country": {
                     "id": "2",
                     "name": "United States of America",
@@ -349,7 +349,7 @@ class BreezeApiTestCase(unittest.TestCase):
         result = breeze_api.add_contribution(**args)
 
         self.validate_url(connection.url, ENDPOINTS.CONTRIBUTIONS, command='add', args=args)
-        self.assertEqual(payment_id, breeze_api.add_contribution())
+        self.assertEqual(payment_id, result)
 
     def test_edit_contribution(self):
         new_payment_id = '99999'
@@ -538,7 +538,6 @@ class BreezeApiTestCase(unittest.TestCase):
         self.assertEqual(json.loads(response.content), result)
         self.validate_url(connection.url, ENDPOINTS.TAGS, command='list_tags', args=args, arg_alias=args_alias)
 
-
     def test_get_tag_folders(self):
         response = MockResponse(200, json.dumps([{
             "id": "1234567",
@@ -569,7 +568,6 @@ class BreezeApiTestCase(unittest.TestCase):
         self.assertEqual(json.loads(response.content), result)
         self.validate_url(connection.url, ENDPOINTS.TAGS, command='assign', args=args)
 
-
     def test_unassign_tag(self):
         args = {'person_id': 17442, 'tag_id': 123156235}
         response = MockResponse(
@@ -583,7 +581,6 @@ class BreezeApiTestCase(unittest.TestCase):
         result = breeze_api.unassign_tag(**args)
         self.assertEqual(json.loads(response.content), result)
         self.validate_url(connection.url, ENDPOINTS.TAGS, command='unassign', args=args)
-
 
     def test_add_event(self):
         response = MockResponse(200, json.dumps([{
