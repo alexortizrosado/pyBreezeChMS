@@ -99,7 +99,8 @@ The parameters and returns of all of the above are described in the
 [Breeze API Reference Guide](https://app.breezechms.com/api). Look there,
 or the source of this package as necessary.
 
-For deails of this Python implementation see [this documentation](./DOCUMENTATION.md).
+For deails of this Python implementation see 
+[this documentation](https://github.com/dawillcox/pyBreezeChMS/blob/master/DOCUMENTATION.md).
 
 ## Test
     pip install python-coveralls
