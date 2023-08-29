@@ -3,18 +3,15 @@ PyBreezeChMS
 
 Python interface to BreezeChMS REST API http://www.breezechms.com
 
-Leaving this in for now:
-[![Build Status](https://travis-ci.org/alexortizrosado/pyBreezeChMS.svg?branch=master)](https://travis-ci.org/alexortizrosado/pyBreezeChMS) [![Coverage Status](https://coveralls.io/repos/alexortizrosado/pyBreezeChMS/badge.png)](https://coveralls.io/r/aortiz32/pyBreezeChMS)
-
-Note: This is an adaption of [PyBreezeChMS](https://github.com/alexortizrosado/pyBreezeChMS),
+This is an adaption of [PyBreezeChMS](https://github.com/alexortizrosado/pyBreezeChMS),
 the "official" Python implementation of the [Breeze API](https://app.breezechms.com/api).
 However, the owner of said repository is apparently no longer with Breeze,
 and doesn't respond to email or issues in that repository.
 
 Since I've wanted several changes and enhancements, I've cloned that original
 and extended it. However, what started as a minor cleanup, mostly with
-the goal of making it a pip-installable package, it's turned into a
-fairly major rewrite. While vestiges of the original version remain, it's
+the goal of making it a pip-installable package, it turned into 
+quite a project. While vestiges of the original version remain, it's
 a pretty major rewrite. Some things that motivated that:
 * Upgrade to Python 3.6 or later; earlier versions are no longer supported.
 * Using at least a current (maybe not latest) PEP coding standard.
@@ -101,6 +98,8 @@ people = breeze_api.get_people()
 The parameters and returns of all of the above are described in the 
 [Breeze API Reference Guide](https://app.breezechms.com/api). Look there,
 or the source of this package as necessary.
+
+For deails of this Python implementation see [this documentation](./DOCUMENTATION.md).
 
 ## Test
     pip install python-coveralls
