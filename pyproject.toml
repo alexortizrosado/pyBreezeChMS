@@ -29,7 +29,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/dawillcox/pyBreezeChMS"
 "Bug Tracker" = "https://github.com/dawillcox/pyBreezeChMS/issues"
-README = "https://github.com/dawillcox/pyBreezeChMS/README.md"
-DOCUMENTATION = "https://github.com/dawillcox/pyBreezeChMS/DOCUMENTATION.md"
-Changelog = "https://github.com/dawillcox/pyBreezeChMS/CHANGELOG.md"
+README = "https://github.com/dawillcox/pyBreezeChMS/blob/master/README.md"
+DOCUMENTATION = "https://github.com/dawillcox/pyBreezeChMS/blob/master/DOCUMENTATION.md"
+Changelog = "https://github.com/dawillcox/pyBreezeChMS/blob/master/CHANGELOG.md"
 REPOSITORY = "https://github.com/dawillcox/pyBreezeChMS.git"
