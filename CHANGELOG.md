@@ -2,4 +2,4 @@
 
 ## 1.0.1
 Initial version. Derived from  [PyBreezeChMS](https://github.com/alexortizrosado/pyBreezeChMS).
-* Release: In development.
+* Release: 29 Apr 2023
