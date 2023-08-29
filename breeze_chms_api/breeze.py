@@ -61,12 +61,15 @@ def _request_succeeded(response) -> bool:
     if isinstance(response, bool):
         return response
     elif isinstance(response, dict):
-        return response.get('success') or not (response.get('errors') or response.get('errorCode'))
+        return (response.get('success')
+                or not (response.get('errors')
+                        or response.get('errorCode')))
     else:
         return True
 
 
-def _transform_setting(key: str, val: Union[int, Mapping, Sequence, None]) -> Union[str, None]:
+def _transform_setting(key: str, val: Union[int, Mapping, Sequence, None]) -> \
+        Union[str, None]:
     """
     Transform a setting value into something usable in the REST API
     :param val: Value from api
@@ -135,9 +138,9 @@ class BreezeApi(object):
         :param breeze_url: Fully qualified domain for your organization's Breeze service
         :param api_key: Unique Breeze API key. For instructions on finding your
                         key, see http://breezechms.com/docs#extensions_api
-        :param dry_run: Enable n-op mode for testing, which disables requests from being made.
-                        When comined with debug,, this allows debugging requests without
-                        affecting data in your Breeze account
+        :param dry_run: Enable n-op mode for testing, which disables requests from being
+                        made. When combined with debug,, this allows debugging requests
+                        without affecting data in your Breeze account
         :param connection: Internet connection session. By default BreezeAPI creates
                         one, but this allows a mock connection for testing.
         """
@@ -166,19 +169,25 @@ class BreezeApi(object):
         self.add_contribution_params = {'date', 'name', 'person_id', 'uid',
                                         'email', 'street_address', 'payment_id',
                                         'processor', 'method', 'funds_json',
-                                        'amount', 'group', 'batch_number', 'batch_name', 'note'}
-        self.edit_contribution_params = {'payment_id', 'date', 'person_id', 'name', 'street_address',
-                                         'email', 'uid', 'processor', 'person_json', 'method',
-                                         'funds_json', 'amount', 'group', 'batch_number',
+                                        'amount', 'group', 'batch_number', 'batch_name',
+                                        'note'}
+        self.edit_contribution_params = {'payment_id', 'date', 'person_id', 'name',
+                                         'street_address',
+                                         'email', 'uid', 'processor', 'person_json',
+                                         'method',
+                                         'funds_json', 'amount', 'group',
+                                         'batch_number',
                                          'batch_name', 'note'}
         self.list_contributions_params = {'start', 'end', 'person_id', 'include_family',
                                           'amount_min', 'amount_max', 'method_ids',
-                                          'fund_ids', 'envelope_number', 'batches', 'forms'}
+                                          'fund_ids', 'envelope_number', 'batches',
+                                          'forms',}
 
     def _request(self,
                  endpoint: ENDPOINTS,
                  command: str = '',
-                 params: Mapping[str, Union[str, int, float, Mapping, Sequence]] = dict(),
+                 params: Mapping[str, Union[str, int, float, Mapping, Sequence]]
+                                = dict(),
                  headers: dict = dict(),
                  timeout: int = 60,
                  ):
@@ -320,7 +329,8 @@ class BreezeApi(object):
                              }
                            ].
                        Obtain such field information from get_profile_fields() or
-                       use get_person_details() to see fields that already exist for a specific person.
+                       use get_person_details() to see fields that already exist
+                       for a specific person.
         :return: JSON response equivalent to get_person_details().
         """
         _check_illegal_param(kwargs, self.add_person_params)
@@ -346,7 +356,8 @@ class BreezeApi(object):
                              }
                            ].
                        Obtain such field information from get_profile_fields() or
-                       use get_person_details() to see fields that already exist for a specific person.
+                       use get_person_details() to see fields that already
+                       exist for a specific person.
         :returns: JSON response equivalent to get_person_details(person_id).
         """
         _check_illegal_param(kwargs, self.update_person_params)
@@ -379,7 +390,9 @@ class BreezeApi(object):
         :param instance_id: ID of the event
         :return: json object with event data
         """
-        return self._request(ENDPOINTS.EVENTS, command='list_event', params={'instance_id': instance_id})
+        return self._request(ENDPOINTS.EVENTS,
+                             command='list_event',
+                             params={'instance_id': instance_id})
 
     def add_event(self, **kwargs) -> str:
         """
@@ -397,7 +410,9 @@ class BreezeApi(object):
         """
 
         _check_illegal_param(kwargs, self.add_event_params)
-        return self._request(ENDPOINTS.EVENTS, command='add', params=_transform_settings(kwargs))
+        return self._request(ENDPOINTS.EVENTS,
+                             command='add',
+                             params=_transform_settings(kwargs))
 
     def event_check_in(self, person_id, instance_id):
         """
@@ -451,7 +466,9 @@ class BreezeApi(object):
         params = {'instance_id': instance_id}
         if details:
             params['details'] = 'true'
-        return self._request(ENDPOINTS.EVENTS, command='attendance/list', params=params)
+        return self._request(ENDPOINTS.EVENTS,
+                             command='attendance/list',
+                             params=params)
 
     def list_eligible_people(self, instance_id: Union[int, str]):
         """
@@ -581,7 +598,9 @@ class BreezeApi(object):
                for add_contribution().
         """
         _check_illegal_param(kwargs, self.edit_contribution_params)
-        response = self._request(ENDPOINTS.CONTRIBUTIONS, command='edit', params=kwargs)
+        response = self._request(ENDPOINTS.CONTRIBUTIONS,
+                                 command='edit',
+                                 params=kwargs)
         return response.get('payment_id') if isinstance(response, dict) else response
 
     def delete_contribution(self, payment_id):
@@ -591,7 +610,9 @@ class BreezeApi(object):
         :return: True if successful
         :raises: BreezeError on failure to delete a contribution.
         """
-        response = self._request(ENDPOINTS.CONTRIBUTIONS, command="delete", params={'payment_id': payment_id})
+        response = self._request(ENDPOINTS.CONTRIBUTIONS,
+                                 command="delete",
+                                 params={'payment_id': payment_id})
         return response.get('success', False)
 
     def list_contributions(self, **kwargs) -> List[Mapping]:
@@ -645,7 +666,9 @@ class BreezeApi(object):
         :return: List of pledges
         """
 
-        return self._request(ENDPOINTS.PLEDGES, command="list_pledges", params={'campaign_id': campaign_id})
+        return self._request(ENDPOINTS.PLEDGES,
+                             command="list_pledges",
+                             params={'campaign_id': campaign_id})
 
 # -------------------------- Forms
 
@@ -677,7 +700,8 @@ class BreezeApi(object):
            },
           ]"""
         return self._request(ENDPOINTS.FORMS, command='list_form_entries',
-                             params={'form_id': form_id, 'details': '1' if details else None})
+                             params={'form_id': form_id,
+                                     'details': '1' if details else None})
 
 # ------------- Tags
 
@@ -795,8 +819,10 @@ def breeze_api(breeze_url: str = None,
     """
     Create an instance of a Breeze api object. Parameters needed to configure the api
     can be passed explicitly or loaded from a file using load_config().
-    :param breeze_url: Explicitly given url for the Breeze API. (load_config() key 'breeze_url')
-    :param api_key: Explicitly given API key for the Breeze API. (load_config() key 'api_key')
+    :param breeze_url: Explicitly given url for the Breeze API.
+                (load_config() key 'breeze_url')
+    :param api_key: Explicitly given API key for the Breeze API.
+                (load_config() key 'api_key')
     :param dry_run: Just for testing, causes breeze_api to skip all net interactions.
     :param connection: Session if other than default (mostly for testing)
     :param config_name: Alternate load_config() file name.

@@ -285,7 +285,9 @@ class BreezeApiTestCase(unittest.TestCase):
         self.assertTrue(result)
         args['direction'] = 'in'
 
-        self.validate_url(ENDPOINTS.EVENTS, command='attendance/add', expect_params=args)
+        self.validate_url(ENDPOINTS.EVENTS,
+                          command='attendance/add',
+                          expect_params=args)
 
     def test_event_check_out(self):
         self.make_api(json.dumps({'event_id': 'Some Data.'}))
@@ -294,14 +296,18 @@ class BreezeApiTestCase(unittest.TestCase):
         result = self.breeze_api.event_check_out(**args)
         self.assertEqual(json.loads(self.response.content), result)
         args['direction'] = 'out'
-        self.validate_url(ENDPOINTS.EVENTS, command='attendance/add', expect_params=args)
+        self.validate_url(ENDPOINTS.EVENTS,
+                          command='attendance/add',
+                          expect_params=args)
 
     def test_delete_attendance(self):
         self.make_api('true')
         result = self.breeze_api.delete_attendance('person', 'instance')
         self.assertEqual(True, result)
-        self.validate_url(ENDPOINTS.EVENTS, command='attendance/delete',
-                          expect_params={'person_id': 'person', 'instance_id': 'instance'})
+        self.validate_url(ENDPOINTS.EVENTS,
+                          command='attendance/delete',
+                          expect_params={'person_id': 'person',
+                                         'instance_id': 'instance'})
 
     def test_list_attendance(self):
         expect_result = json.dumps([{'stuff': 'value'}])
@@ -345,7 +351,8 @@ class BreezeApiTestCase(unittest.TestCase):
         self.validate_url(ENDPOINTS.CONTRIBUTIONS, command='add', expect_params=args)
         self.assertEqual(payment_id, result)
 
-        self.assertRaises(breeze.BreezeBadParameter, lambda: self.breeze_api.add_contribution(notaparm=''))
+        self.assertRaises(breeze.BreezeBadParameter,
+                          lambda: self.breeze_api.add_contribution(notaparm=''))
 
     def test_edit_contribution(self):
         new_payment_id = '99999'
@@ -402,7 +409,9 @@ class BreezeApiTestCase(unittest.TestCase):
                              'payment_id': payment_id}))
         args = {'payment_id': payment_id}
         self.assertTrue(self.breeze_api.delete_contribution(**args))
-        self.validate_url(ENDPOINTS.CONTRIBUTIONS, command='delete', expect_params=args)
+        self.validate_url(ENDPOINTS.CONTRIBUTIONS,
+                          command='delete',
+                          expect_params=args)
 
     def test_list_form_entries(self):
         self.make_api(json.dumps([{
@@ -420,7 +429,9 @@ class BreezeApiTestCase(unittest.TestCase):
         args = {'form_id': 329}
         result = self.breeze_api.list_form_entries(**args)
         self.assertEqual(json.loads(self.response.content), result)
-        self.validate_url(ENDPOINTS.FORMS, command='list_form_entries', expect_params=args)
+        self.validate_url(ENDPOINTS.FORMS,
+                          command='list_form_entries',
+                          expect_params=args)
 
     def test_list_funds(self):
         self.make_api(json.dumps([{
@@ -450,11 +461,13 @@ class BreezeApiTestCase(unittest.TestCase):
 
     def test_false_response(self):
         self.make_api(json.dumps(False))
-        self.assertRaises(breeze.BreezeError, lambda: self.breeze_api.event_check_in('1', '2'))
+        self.assertRaises(breeze.BreezeError,
+                          lambda: self.breeze_api.event_check_in('1', '2'))
 
     def test_errors_response(self):
         self.make_api(json.dumps({'errors': 'Some Errors'}))
-        self.assertRaises(breeze.BreezeError, lambda: self.breeze_api.event_check_in('1', '2'))
+        self.assertRaises(breeze.BreezeError,
+                          lambda: self.breeze_api.event_check_in('1', '2'))
 
     def test_list_pledges(self):
         self.make_api(json.dumps([{
@@ -545,9 +558,10 @@ class BreezeApiTestCase(unittest.TestCase):
         self.assertEqual(url, api.breeze_url)
 
     def test_build_bad_url(self):
+        url = 'https://4breeetest.breezy.com'
         self.assertRaises(breeze.BreezeError,
-                          lambda: breeze.breeze_api(breeze_url='https://4breeetest.breezy.com',
-                                                    api_key='prover'))
+                          lambda: breeze.breeze_api(breeze_url=url,
+                                                    api_key='plover'))
         overrides = {'breeze_url': None, 'api_key': None}
         self.assertRaises(breeze.BreezeError,
                           lambda: breeze.breeze_api(overrides=overrides))
