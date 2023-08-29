@@ -6,21 +6,24 @@ Breeze Church Management System.
 Usage:
   from breeze import breeze
 
-  breeze_api = breeze.BreezeApi(
-      breeze_url='https://demo.breezechms.com',
-      api_key='5c2d2cbacg3...')
+  breeze_api = breeze.breeze_api()
+  # But see the documentation, there's more to the above.
   people = breeze_api.get_people();
 
   for person in people:
-    print '%s %s' % (person['first_name'], person['last_name'])
+    print f"{person['first_name']} {person['last_name']}"
+
+  Adapted from the original by alexortizrosado@gmail.com (Alex Ortiz-Rosado)
 """
 
-__author__ = 'alexortizrosado@gmail.com (Alex Ortiz-Rosado)'
+__author__ = 'daw30410@yahoo.com (David A. Willcox)'
 
 import logging
 import requests
+import json
 from enum import Enum
-from typing import Union, List
+from typing import Union, List, Mapping, Sequence, Set
+from combine_settings import load_config
 
 
 class ENDPOINTS(Enum):
@@ -33,11 +36,92 @@ class ENDPOINTS(Enum):
     TAGS = 'tags'
     ACCOUNT_SUMMARY = 'account/summary'
     FORMS = 'forms'
+    VOLUNTEERS = 'volunteers'
+
+
+BREEZE_URL_KEY = 'breeze_url'
+BREEZE_API_KEY_KEY = 'api_key'
+HELPER_CONFIG_FILE = 'breeze_maker.yml'
 
 
 class BreezeError(Exception):
     """Exception for BreezeApi."""
-    pass
+
+    def __init__(self, *args):
+        Exception.__init__(self, args)
+
+
+class BreezeBadParameter(BreezeError):
+    def __init__(self, *args):
+        BreezeError.__init__(self, args)
+
+
+def _request_succeeded(response) -> bool:
+    """Predicate to ensure that the HTTP request succeeded."""
+    if isinstance(response, bool):
+        return response
+    elif isinstance(response, dict):
+        return response.get('success') or not (response.get('errors') or response.get('errorCode'))
+    else:
+        return True
+
+
+def _transform_setting(key: str, val: Union[int, Mapping, Sequence, None]) -> Union[str, None]:
+    """
+    Transform a setting value into something usable in the REST API
+    :param val: Value from api
+    :return: val converted as follows:
+        None (or empty): None
+        val if val is already a string
+        json_dumps(val) if key ends with _json
+        Sequence: '-'.join(str(v) for v in val if v]
+        bool: '1' if val is True else None
+        Otherwise: str(val)
+    """
+    if not val:
+        return None
+    elif isinstance(val, str):
+        return val
+    elif key.endswith('_json'):
+        return json.dumps(val)
+    elif isinstance(val, Sequence):
+        return '-'.join([str(v) for v in val if v])
+    elif isinstance(val, bool):
+        return '1' if val else '0'
+    else:
+        return str(val)
+
+
+def _transform_settings(args: Mapping) -> dict:
+    """
+    Given a mapping of parameter:value, return a dict with all of the parameters
+    that actually had a value, but with values converted to API-compatible strings
+    using _transform_setting().
+    :param args: Mapping of parameter:value
+    :return: New dict with values suitably transformed
+    """
+    # # fields_json is a special case that needs to be encoded as json string,
+    # # which the caller may have done, but just in case...
+    # json_fields = [f for f in args.keys() if f.endswith('_json')]
+    # for jfield in json_fields:
+    #     jval = args.get(jfield)
+    #     if jval and not isinstance(jval, str):
+    #         args[jfield] = json.dumps(jval)
+    # fields_json = args.get('fields_json')
+    return {k: _transform_setting(k, v) for k, v in args.items() if v}
+
+
+def _check_illegal_param(args: Mapping, valid_keys: Set) -> None:
+    """
+    Check to be sure all parameters are valid.
+    :param args:    Map of function arguments
+    :param valid_keys: Set of valid keys for this function
+    :return: None (implies success)
+    :raises: BreezeBadParameter if unexpected setting found
+    """
+    bad_keys = set(args.keys()).difference(valid_keys)
+    if bad_keys:
+        raise BreezeBadParameter(f'Unexpected parameter(s): {",".join(list(bad_keys))}')
 
 
 class BreezeApi(object):
@@ -46,17 +130,17 @@ class BreezeApi(object):
     def __init__(self, breeze_url, api_key,
                  dry_run=False,
                  connection=requests.Session()):
-        """Instantiates the BreezeApi with your Breeze account information.
-
-        Args:
-          breeze_url: Fully qualified domain for your organizations Breeze
-                      service.
-          api_key: Unique Breeze API key. For instructions on finding your
-                   organizations API key, see:
-                   http://breezechms.com/docs#extensions_api
-          dry_run: Enable no-op mode, which disables requests from being made.
-                   When combined with debug, this allows debugging requests
-                   without affecting data in your Breeze account."""
+        """
+        Instantiates the BreezeApi with your Breeze account information.
+        :param breeze_url: Fully qualified domain for your organization's Breeze service
+        :param api_key: Unique Breeze API key. For instructions on finding your
+                        key, see http://breezechms.com/docs#extensions_api
+        :param dry_run: Enable n-op mode for testing, which disables requests from being made.
+                        When comined with debug,, this allows debugging requests without
+                        affecting data in your Breeze account
+        :param connection: Internet connection session. By default BreezeAPI creates
+                        one, but this allows a mock connection for testing.
+        """
 
         self.breeze_url = breeze_url
         self.api_key = api_key
@@ -65,48 +149,65 @@ class BreezeApi(object):
 
         # TODO(alex): use urlparse to check url format.
         if not (self.breeze_url and self.breeze_url.startswith('https://') and
-                self.breeze_url.find('.breezechms.')):
+                (self.breeze_url.find('.breezechms.') > 0)):
             raise BreezeError('You must provide your breeze_url as ',
                               'subdomain.breezechms.com')
 
         if not self.api_key:
             raise BreezeError('You must provide an API key.')
 
+        # Valid parameters for various apis:
+        self.get_people_params = {'limit', 'offset', 'details'}
+        self.add_person_params = {'first', 'last', 'fields_json'}
+        self.update_person_params = {'person_id', 'fields_json'}
+        self.list_events_params = {'start', 'end'}
+        self.add_event_params = {'name', 'starts_on', 'ends_on', 'all_day',
+                                 'description', 'category_id', 'event_id'}
+        self.add_contribution_params = {'date', 'name', 'person_id', 'uid',
+                                        'email', 'street_address', 'payment_id',
+                                        'processor', 'method', 'funds_json',
+                                        'amount', 'group', 'batch_number', 'batch_name', 'note'}
+        self.edit_contribution_params = {'payment_id', 'date', 'person_id', 'name', 'street_address',
+                                         'email', 'uid', 'processor', 'person_json', 'method',
+                                         'funds_json', 'amount', 'group', 'batch_number',
+                                         'batch_name', 'note'}
+        self.list_contributions_params = {'start', 'end', 'person_id', 'include_family',
+                                          'amount_min', 'amount_max', 'method_ids',
+                                          'fund_ids', 'envelope_number', 'batches', 'forms'}
+
     def _request(self,
                  endpoint: ENDPOINTS,
-                 args: List[str] = [],
                  command: str = '',
-                 params=None,
-                 headers=None,
-                 timeout=60):
-        """Makes an HTTP request to a given url.
+                 params: Mapping[str, Union[str, int, float, Mapping, Sequence]] = dict(),
+                 headers: dict = dict(),
+                 timeout: int = 60,
+                 ):
+        """
+        Make an HTTP request to a given url.
+        :param endpoint: URL endpoint for the service. (contributions, people, etc.)
+        :param command: Command for the endpoint. (add, list, etc.)
+        :param params: Parameters for the command {name: value, ...}
+        :param headers: Extra HTTP headers if needed
+        :return: HTTP response
+        :raises": BreezeError if connection or request fails
+        """
 
-        Args:
-          endpoint: URL where the service can be accessed.
-          params: Query parameters to append to endpoint url.
-          headers: HTTP headers; used for authenication parameters.
-          timeout: Timeout in seconds for HTTP request.
+        http_headers = {
+            'Content-Type': 'application/json',
+            'Api-Key': self.api_key
+        }
+        if headers:
+            http_headers.update(headers)
 
-        Returns:
-          HTTP response
-
-        Throws:
-          BreezeError if connection or request fails."""
-        if headers is None:
-            headers = {}
-        headers.update({
-          'Content-Type': 'application/json',
-          'Api-Key': self.api_key}
-          )
-
-        if params is None:
-            params = {}
-        keywords = dict(params=params, headers=headers, timeout=timeout)
-        url = f"{self.breeze_url}/api/{endpoint.value}/{command}?{'&'.join(args)}"
+        params = _transform_settings(params)
+        keywords = dict(headers=http_headers,
+                        params=_transform_settings(params),
+                        timeout=timeout)
+        url = f"{self.breeze_url}/api/{endpoint.value}/{command}?"
 
         logging.debug('Making request to %s', url)
         if self.dry_run:
-            return      # NOT TESTED
+            return  # NOT TESTED
 
         response = self.connection.get(url, verify=True, **keywords)
         try:
@@ -114,23 +215,18 @@ class BreezeApi(object):
         except requests.ConnectionError as error:
             raise BreezeError(error)
         else:
-            if not self._request_succeeded(response):
+            if not _request_succeeded(response):
                 raise BreezeError(response)
             logging.debug('JSON Response: %s', response)
             return response
 
-    def _request_succeeded(self, response) -> bool:
-        """Predicate to ensure that the HTTP request succeeded."""
-        if isinstance(response, bool):
-            return response
-        else:
-            return not (('errors' in response) or ('errorCode' in response))
+# ------------------ ACCOUNT
 
-    def get_account_summary(self):
+    def get_account_summary(self) -> dict:
         """Retrieve the details for a specific account using the API key 
           and URL. It can also work to see if the key and URL are valid.
 
-        Returns:
+        :return:
           JSON response. For example:
           {
             "id":"1234",
@@ -139,7 +235,7 @@ class BreezeApi(object):
             "status":"1",
             "created_on":"2018-09-10 09:19:35",
             "details":{
-                "timezone":"America\/New_York",
+                "timezone":"America/New_York",
                 "country":{
                     "id":"2",
                     "name":"United States of America",
@@ -153,73 +249,68 @@ class BreezeApi(object):
             }
           }
           """
-        return self._request(ENDPOINTS.ACCOUNT_SUMMARY) # NOT TESTED
+        return self._request(ENDPOINTS.ACCOUNT_SUMMARY)  # NOT TESTED
 
-    def get_people(self, limit=None, offset=None, details=False):
-        """List people from your database.
+# ------------------ People
 
-        Args:
-          limit: Number of people to return. If None, will return all people.
-          offset: Number of people to skip before beginning to return results.
-                  Can be used in conjunction with limit for pagination.
-          details: Option to return all information (slower) or just names.
-
-        returns:
+    def list_people(self, **kwargs) -> List[dict]:
+        """
+        List people from your database
+        :param kwargs: Keyed parameters, all optional:
+            limit: If set, number of people to return, If none, will return all people
+            offset: Number of people to skip before beginning to return results.
+            details: Boolean, if True, return all information, Otherwise just names.
+            filter_json: Filter results based on criteria (tags, status, etc.)
+                Refer to the list_profile_field response to show values you're
+                searching for. Or see the API document for a slightly better
+                explanation.
+        :return:
           JSON response. For example:
           {
             "id":"157857",
             "first_name":"Thomas",
             "last_name":"Anderson",
-            "path":"img\/profiles\/generic\/blue.jpg"
+            "path":"img/profiles/generic/blue.jpg"
           },
           {
             "id":"157859",
             "first_name":"Kate",
             "last_name":"Austen",
-            "path":"img\/profiles\/upload\/2498d7f78s.jpg"
+            "path":"img/profiles/upload/2498d7f78s.jpg"
           },
           {
             ...
-          }"""
+          }
+          """
+        _check_illegal_param(kwargs, self.get_people_params)
+        # TODO Add test for filter_json.
+        return self._request(ENDPOINTS.PEOPLE, params=kwargs)
 
-        params = []
-        if limit:
-            params.append('limit=%s' % limit)
-        if offset:
-            params.append('offset=%s' % offset)
-        if details:
-            params.append('details=1')
-        return self._request(ENDPOINTS.PEOPLE, args=params)
-        # return self._request('%s/?%s' % (ENDPOINTS.PEOPLE, '&'.join(params)))
-
-    def get_profile_fields(self):
+    def get_profile_fields(self) -> List[dict]:
         """List profile fields from your database.
 
-        Returns:
-          JSON response."""
+        :return: List of descriptors of profile fields
+        """
         return self._request(ENDPOINTS.PROFILE_FIELDS)
 
-    def get_person_details(self, person_id):
-        """Retrieve the details for a specific person by their ID.
-
-        Args:
-          person_id: Unique id for a person in Breeze database.
-
-        Returns:
-          JSON response."""
+    def get_person_details(self, person_id: Union[str, int]) -> dict:
+        """
+        Retrieve the details for a specific person by their ID.
+        :param person_id: Unique id for a person in Breeze database.
+        :return: JSON response.
+        """
         return self._request(ENDPOINTS.PEOPLE, command=str(person_id))
-        # return self._request('%s/%s' % (ENDPOINTS.PEOPLE, str(person_id)))
 
-    def add_person(self, first_name, last_name, fields_json=None):
-        """Adds a new person into the database.
-
-        Args:
-          first_name: The first name of the person.
-          last_name: The first name of the person.
-          fields_json: JSON string representing an array of fields to update.
+    def add_person(self, **kwargs) -> str:
+        """
+        Add a new person to the database
+        :param kwargs: Keyed parameters:
+            first: The first name of the person.
+            last: The last name of the person.
+            fields_json: JSON string representing an array of fields to update.
                        Each array element must contain field id, field type, response,
                        and in some cases, more information.
-                       ie. [ {
+                       eg. [ {
                                "field_id":"929778337",
                                "field_type":"email",
                                "response":"true",
@@ -230,29 +321,22 @@ class BreezeApi(object):
                            ].
                        Obtain such field information from get_profile_fields() or
                        use get_person_details() to see fields that already exist for a specific person.
+        :return: JSON response equivalent to get_person_details().
+        """
+        _check_illegal_param(kwargs, self.add_person_params)
+        return self._request(ENDPOINTS.PEOPLE, command='add',
+                             params=_transform_settings(kwargs))
 
-        Returns:
-          JSON response equivalent to get_person_details()."""
+    def update_person(self, **kwargs) -> dict:
+        """
+        Updates the details for a specific person in the database.
 
-        params = []
-        params.append(f'first={first_name}')
-        params.append(f'last={last_name}')
-        if fields_json:
-            params.append(f'fields_json={fields_json}')  # NOT TESTSED
-
-        return self._request(ENDPOINTS.PEOPLE, command='add', args=params)
-
-        # return self._request('%s/add?%s' % (ENDPOINTS.PEOPLE, '&'.join(params)))
-
-    def update_person(self, person_id, fields_json=[]):
-        """Updates the details for a specific person in the database.
-
-        Args:
+        :param kwargs:
           person_id: Unique id for a person in Breeze database.
           fields_json: JSON string representing an array of fields to update.
                        Each array element must contain field id, field type, response,
                        and in some cases, more information.
-                       ie. [ {
+                       eg.eg. [ {
                                "field_id":"929778337",
                                "field_type":"email",
                                "response":"true",
@@ -263,148 +347,138 @@ class BreezeApi(object):
                            ].
                        Obtain such field information from get_profile_fields() or
                        use get_person_details() to see fields that already exist for a specific person.
+        :returns: JSON response equivalent to get_person_details(person_id).
+        """
+        _check_illegal_param(kwargs, self.update_person_params)
+        return self._request(ENDPOINTS.PEOPLE, command='update', params=kwargs)
 
+# -------------------- Calendars and Events
 
-        Returns:
-          JSON response equivalent to get_person_details(person_id)."""
-        params = [f'person_id={person_id}', f'fields_json={fields_json}']
-        return self._request(ENDPOINTS.PEOPLE, command='update', args=params)
+    def list_calendars(self) -> List[dict]:
+        """
+        Return a list of calendars
+        :return: List of descriptions of available calenders
+        """
+        return self._request(ENDPOINTS.EVENTS, command='calendars/list')
 
-        # return self._request(
-        #     '%s/update?person_id=%s&fields_json=%s' % (
-        #         ENDPOINTS.PEOPLE.value, person_id, fields_json
-        #     ))
+    def list_events(self, **kwargs) -> List[dict]:
+        """
+        Retrieve all events for a given date range.
 
-    def get_events(self, start_date=None, end_date=None):
-        """Retrieve all events for a given date range.
+        :param kwargs: Keyed parameters
+          start: Start date; defaults to first day of the current month.
+          end: End date; defaults to last day of the current month
+        :return: JSON response
+        """
+        _check_illegal_param(kwargs, self.list_events_params)
+        return self._request(ENDPOINTS.EVENTS, params=kwargs)
 
-        Args:
-          start_date: Start date; defaults to first day of the current month.
-          end_date: End date; defaults to last day of the current month
+    def list_event(self, instance_id: Union[str, int]) -> dict:
+        """
+        Return information about a specific event
+        :param instance_id: ID of the event
+        :return: json object with event data
+        """
+        return self._request(ENDPOINTS.EVENTS, command='list_event', params={'instance_id': instance_id})
 
-        Returns:
-          JSON response."""
-        args = []
-        if start_date:
-            args.append(f'start={start_date}')
-        if end_date:
-            args.append(f'end={end_date}')
-        return self._request(ENDPOINTS.EVENTS, args=args)
-        # return self._request('%s/?%s' % (ENDPOINTS.EVENTS, '&'.join(params)))
+    def add_event(self, **kwargs) -> str:
+        """
+        Add event for given date rage
 
-    def add_event(self,
-                  name,
-                  start_date,
-                  end_date=None,
-                  all_day=None,
-                  description=None,
-                  category_id=None,
-                  event_id=None):
-        """Add event for a given date range.
-
-        Args:
+        :param kwargs: Keyed parameters
           name: Name of event
-          start_date: Start datetimestamp (epoch time)
-          end_date: End datetimestamp (epoch time)
+          starts_on: Start datetimestamp (epoch time)
+          ends_on: End datetimestamp (epoch time)
           all_day: boolean
           description: description of event (default none)
           category id: which calendar your event is on (defaults to primary)
           event id: series id
+        :return: JSON response
+        """
 
-        Returns:
-          JSON response."""
-          
-        args = []
-        if name:
-            args.append(f'name={name}')
-        if start_date:
-            args.append(f'starts_on={start_date}')
-        if end_date:
-            args.append(f'ends_on={end_date}')
-        if all_day is not None:
-            args.append(f'all_day={1 if all_day else 0}')
-        if description:
-            args.append(f'description={description}')
-        if category_id:
-            args.append(f'category_id={category_id}')
-        if event_id:
-            args.append(f'event_id={event_id}')
-        return self._request(ENDPOINTS.EVENTS, command='add', args=args)
-        # return self._request('%s/add?%s' % (ENDPOINTS.EVENTS, '&'.join(params)))
+        _check_illegal_param(kwargs, self.add_event_params)
+        return self._request(ENDPOINTS.EVENTS, command='add', params=_transform_settings(kwargs))
 
-    def event_check_in(self, person_id, event_instance_id):
-        """Checks in a person into an event.
+    def event_check_in(self, person_id, instance_id):
+        """
+        Checks a person in to an event.
+        :param person_id: ID for person in Breeze database
+        :param instance_id: ID for event to check in to
+        :return: Request response
+        """
+        return self._request(ENDPOINTS.EVENTS, command='attendance/add',
+                             params={'person_id': person_id,
+                                     'instance_id': instance_id,
+                                     'direction': 'in'})
 
-        Args:
-          person_id: id for a person in Breeze database.
-          event_instance_id: id for event instance to check into.."""
-        args = [f'person_id={person_id}', f'instance_id={event_instance_id}']
+    def event_check_out(self, person_id, instance_id):
+        """
+        Remove the attendance for a person checked into an event.
+        :param person_id: Breeze ID for a person in Breeze database.
+        :param instance_id: Breeze ID for a person in Breeze database.
+        :return: True if check-out succeeds; False if check-out fails.
 
-        return self._request(ENDPOINTS.EVENTS, command='add', args=args)
-        # return self._request(
-        #     '%s/attendance/add?person_id=%s&instance_id=%s' % (
-        #         ENDPOINTS.EVENTS, str(person_id), str(event_instance_id)
-        #     ))
+        Note: event_check_out() differs from delete_attendance() in that
+        it adds a check-out record. (It also adds a check-in if the person
+        isn't already checked in.) delete_attendance() removes all attendance
+        records for the person.
+        """
+        return self._request(ENDPOINTS.EVENTS,
+                             command='attendance/add',
+                             params={'person_id': person_id,
+                                     'instance_id': instance_id,
+                                     'direction': 'out'})
 
-    def event_check_out(self, person_id, event_instance_id):
-        """Remove the attendance for a person checked into an event.
+    def delete_attendance(self, person_id, instance_id):
+        """
+        Delete all attendance records for a person from an event
+        :param person_id: Id of person to remove
+        :param instance_id: Event instance ID
+        :return: True if delete succeeds
+        """
+        return self._request(ENDPOINTS.EVENTS,
+                             command='attendance/delete',
+                             params={'person_id': person_id,
+                                     'instance_id': instance_id})
 
-        Args:
-          person_id: Breeze ID for a person in Breeze database.
-          event_instance_id: id for event instance to check out (delete).
+    def list_attendance(self, instance_id: Union[str, int], details: bool = False):
+        """
+        List attendance for an event
+        :param instance_id: ID of the event
+        :param details: If true, give details
+        :return: List of people who attended this event
+        """
+        params = {'instance_id': instance_id}
+        if details:
+            params['details'] = 'true'
+        return self._request(ENDPOINTS.EVENTS, command='attendance/list', params=params)
 
-        Returns:
-          True if check-out succeeds; False if check-out fails."""
+    def list_eligible_people(self, instance_id: Union[int, str]):
+        """
+        List people eligible for an event
+        :param instance_id: ID of the event
+        :return: List of eligible people
+        """
+        return self._request(ENDPOINTS.EVENTS, command='attendance/eligible',
+                             params={'instance_id': instance_id})
 
-        args = [f'person_id={person_id}', f'instance_id={event_instance_id}']
-        return self._request(ENDPOINTS.EVENTS, command='delete', args=args)
-        # return self._request(
-        #     '%s/attendance/delete?person_id=%s&instance_id=%s' % (
-        #         ENDPOINTS.EVENTS, str(person_id), str(event_instance_id)
-        #     ))
+# ------------ Contributions
 
-    def add_contribution(self, **kwargs):
-                         # date=None,
-                         # name=None,
-                         # person_id=None,
-                         # uid=None,
-                         # processor=None,
-                         # method=None,
-                         # funds_json=None,
-                         # amount=None,
-                         # group=None,
-                         # batch_number=None,
-                         # batch_name=None):
-        """Add a contribution to Breeze.
-
-        Args:
-          date: Date of transaction in DD-MM-YYYY format (ie. 24-5-2015)
-          name: Name of person that made the transaction. Used to help match up
-                contribution to correct profile within Breeze.  (ie. John Doe)
+    def add_contribution(self, **kwargs) -> str:
+        """
+        Add a contribution to Breeze.Y
+        :param kwargs: Keyed arguments as follows:
+          date: Date of transaction in YYYY-MM-DD format (eg. 2016-05-24)
           person_id: The Breeze ID of the donor. If unknown, use UID instead of
-                     person id  (ie. 1234567)
-          uid: The unique id of the person sent from the giving platform. This
-               should be used when the Breeze ID is unknown. Within Breeze a
-               user will be able to associate this ID with a given Breeze ID.
-               (ie. 9876543)
-          email: Email address of donor. If no person_id is provided, used to
-                 help automatically match the person to the correct profile.
-                 (ie. sample@breezechms.com)
-          street_address: Donor's street address. If person_id is not provided,
-                          street_address will be used to help automatically
-                          match the person to the correct profile.
-                          (ie. 123 Sample St)
-          processor: The name of the processor used to send the payment. Used
-                     in conjunction with uid. Not needed if using Breeze ID.
-                     (ie. SimpleGive, BluePay, Stripe)
-          method: The payment method. (ie. Check, Cash, Credit/Debit Online,
+                     person id (eg. 1234567)
+          method: The payment method. (eg. Check, Cash, Credit/Debit Online,
                   Credit/Debit Offline, Donated Goods (FMV), Stocks (FMV),
                   Direct Deposit)
-          funds_json: JSON string containing fund names and amounts. This
+          funds_json: JSON object containing fund names and amounts. This
                       allows splitting fund giving. The ID is optional. If
                       present, it must match an existing fund ID and it will
-                      override the fund name.
-                      ie. [ {
+                      override the fund name. In other words,
+                      eg.. [ {
                               'id':'12345',
                               'name':'General Fund',
                               'amount':'100.00'
@@ -425,85 +499,60 @@ class BreezeApi(object):
                         number.
           batch_name: The name of the batch. Can be used with batch number or
                       group.
-
-        Returns:
-          Payment Id.
-
-        Throws:
-          BreezeError on failure to add contribution."""
-
-        args = [f'{k}={v}' for k, v in kwargs.items()]
-        # if date:
-        #     params.append('date=%s' % date)
-        # if name:
-        #     params.append('name=%s' % name)
-        # if person_id:
-        #     params.append('person_id=%s' % person_id)
-        # if uid:
-        #     params.append('uid=%s' % uid)
-        # if processor:
-        #     params.append('processor=%s' % processor)
-        # if method:
-        #     params.append('method=%s' % method)
-        # if funds_json:
-        #     params.append('funds_json=%s' % funds_json)
-        # if amount:
-        #     params.append('amount=%s' % amount)
-        # if group:
-        #     params.append('group=%s' % group)
-        # if batch_number:
-        #     params.append('batch_number=%s' % batch_number)
-        # if batch_name:
-        #     params.append('batch_name=%s' % batch_name)
-        response = self._request(ENDPOINTS.CONTRIBUTIONS, command='add', args=args)
-        # response = self._request('%s/add?%s' % (ENDPOINTS.CONTRIBUTIONS,
-        #                                         '&'.join(params)))
+          note: An optional note for the transaction
+          uid: The unique id of the person sent from the giving platform. This
+               should be used when the Breeze ID is unknown. Within Breeze a
+               user will be able to associate this ID with a given Breeze ID.
+          processor: The name of the processor used to send the payment. Used
+                     in conjunction with uid. Not needed if using Breeze ID.
+                     (eg. SimpleGive, BluePay, Stripe, Vanco Services)
+          ---- If person_id is provided, or Breeze has already determined which
+               person corresponds to the given uid and processor combination, the
+               payment will be recorded for that person. If only uid and
+               processor are provided, Breeze will attempt to determine the correct
+               person using any or all of the following:
+          name: Donor's name.
+          email: Email address of the donor.
+          street_address: Donor's street address.
+        :return: Payment id
+        :raises: BreezeError on failure to add contribution
+        """
+        _check_illegal_param(kwargs, self.add_contribution_params)
+        response = self._request(ENDPOINTS.CONTRIBUTIONS, command='add', params=kwargs)
         return response['payment_id']
 
-    def edit_contribution(self, **kwargs):
-                          # payment_id=None,
-                          # date=None,
-                          # name=None,
-                          # person_id=None,
-                          # uid=None,
-                          # processor=None,
-                          # method=None,
-                          # funds_json=None,
-                          # amount=None,
-                          # group=None,
-                          # batch_number=None,
-                          # batch_name=None):
-        """Edit an existing contribution.
-
-        Args:
+    def edit_contribution(self, **kwargs) -> str:
+        """
+        Edit an existing contribution
+        :param kwargs: Keyed parameters
           payment_id: The ID of the payment that should be modified.
-          date: Date of transaction in DD-MM-YYYY format (ie. 24-5-2015)
+          date: Date of transaction in YYYY-MM-DD format (eg. 2015-05-24)
           name: Name of person that made the transaction. Used to help match up
-                contribution to correct profile within Breeze.  (ie. John Doe)
+                contribution to correct profile within Breeze.  (eg. John Doe)
           person_id: The Breeze ID of the donor. If unknown, use UID instead of
-                     person id  (ie. 1234567)
+                     person id  (eg. 1234567) (Curious. Why if payment_id is given?)
           uid: The unique id of the person sent from the giving platform. This
                should be used when the Breeze ID is unknown. Within Breeze a
                user will be able to associate this ID with a given Breeze ID.
-               (ie. 9876543)
+               (eg. 9876543)
           email: Email address of donor. If no person_id is provided, used to
                  help automatically match the person to the correct profile.
-                 (ie. sample@breezechms.com)
+                 (eg. sample@breezechms.com)
           street_address: Donor's street address. If person_id is not provided,
                           street_address will be used to help automatically
                           match the person to the correct profile.
-                          (ie. 123 Sample St)
+                          (eg. 123 Sample St)
           processor: The name of the processor used to send the payment. Used
                      in conjunction with uid. Not needed if using Breeze ID.
-                     (ie. SimpleGive, BluePay, Stripe)
-          method: The payment method. (ie. Check, Cash, Credit/Debit Online,
+                     (eg. SimpleGive, BluePay, Stripe)
+          method: The payment method. (eg. Check, Cash, Credit/Debit Online,
                   Credit/Debit Offline, Donated Goods (FMV), Stocks (FMV),
                   Direct Deposit)
           funds_json: JSON string containing fund names and amounts. This
                       allows splitting fund giving. The ID is optional. If
                       present, it must match an existing fund ID and it will
                       override the fund name.
-                      ie. [ {
+                      eg. [ {
                               'id':'12345',
                               'name':'General Fund',
                               'amount':'100.00'
@@ -524,118 +573,34 @@ class BreezeApi(object):
                         number.
           batch_name: The name of the batch. Can be used with batch number or
                       group.
-
-        Returns:
-          Payment id.
-
-        Throws:
-          BreezeError on failure to edit contribution."""
-
-        args = [f'{k}={v}' for k, v in kwargs.items()]
-
-        # if payment_id:
-        #     params.append('payment_id=%s' % payment_id)
-        # if date:
-        #     params.append('date=%s' % date)
-        # if name:
-        #     params.append('name=%s' % name)
-        # if person_id:
-        #     params.append('person_id=%s' % person_id)
-        # if uid:
-        #     params.append('uid=%s' % uid)
-        # if processor:
-        #     params.append('processor=%s' % processor)
-        # if method:
-        #     params.append('method=%s' % method)
-        # if funds_json:
-        #     params.append('funds_json=%s' % funds_json)
-        # if amount:
-        #     params.append('amount=%s' % amount)
-        # if group:
-        #     params.append('group=%s' % group)
-        # if batch_number:
-        #     params.append('batch_number=%s' % batch_number)
-        # if batch_name:
-        #     params.append('batch_name=%s' % batch_name)
-        # response = self._request('%s/edit?%s' % (ENDPOINTS.CONTRIBUTIONS,
-        #                                          '&'.join(params)))
-        response = self._request(ENDPOINTS.CONTRIBUTIONS, command='edit', args=args)
-        return response['payment_id']
+        :returns: New payment ID for the the payment
+        :raises: BreezeError on failure to edit contribution.
+        :note: The old payment is removed and a new one is added with
+               the provided fields updated.
+        :note: Handling of fields related to uid and processor is as described
+               for add_contribution().
+        """
+        _check_illegal_param(kwargs, self.edit_contribution_params)
+        response = self._request(ENDPOINTS.CONTRIBUTIONS, command='edit', params=kwargs)
+        return response.get('payment_id') if isinstance(response, dict) else response
 
     def delete_contribution(self, payment_id):
-        """Delete an existing contribution.
+        """
+        Delete an existing contribution.
+        :param payment_id: The ID of the payment to be deleted
+        :return: True if successful
+        :raises: BreezeError on failure to delete a contribution.
+        """
+        response = self._request(ENDPOINTS.CONTRIBUTIONS, command="delete", params={'payment_id': payment_id})
+        return response.get('success', False)
 
-        Args:
-          payment_id: The ID of the payment that should be deleted.
-
-        Returns:
-          Payment id.
-
-        Throws:
-          BreezeError on failure to delete contribution."""
-
-        response = self._request(ENDPOINTS.CONTRIBUTIONS, command="delete", args=[f'payment_id={payment_id}'])
-        # response = self._request('%s/delete?payment_id=%s' % (
-        #     ENDPOINTS.CONTRIBUTIONS, payment_id
-        # ))
-        return response['payment_id']
-
-    def list_form_entries(self, form_id, details=False):
-        """return entries for the given form
-
-        Args:
-          form_id:the ID of the form 
-          details: Option to return all information (slower) or just names.
-
-        returns:
-          JSON response. For example:
-          [
-		{
-			"id":"11",
-			"form_id":"15326",
-			"created_on":"2021-03-09 13:04:02",
-			"person_id":null,
-			"response":{
-			    "45":{
-				"id":"13",
-				"oid":"1512",
-				"first_name":"Zoe",
-				"last_name":"Washburne",
-				"created_on":"2021-03-09 13:04:03"
-			    },
-			    "46":"zwashburne@test.com",
-			    "47":"Red"
-			}
-		    },
-          ]"""
-
-        args = [f'form_id={form_id}']
-        if details:
-            args.append('details=1')
-        return self._request(ENDPOINTS.FORMS, command='list_form_entries', args=args)
-        # return self._request('%s/list_form_entries?%s' % (ENDPOINTS.FORMS, '&'.join(params)))
-
-    def list_contributions(self,
-                           # start_date=None,
-                           # end_date=None,
-                           # person_id=None,
-                           # include_family=False,
-                           # amount_min=None,
-                           # amount_max=None,
-                           # method_ids=None,
-                           # fund_ids=None,
-                           # envelope_number=None,
-                           # batches=None,
-                           # forms=None,
-                           **kwargs):
-        """Retrieve a list of contributions.
-
-        Args:
-          start_date: Find contributions given on or after a specific date
-                      (ie. 2015-1-1); required.
-          end_date: Find contributions given on or before a specific date
-                    (ie. 2018-1-31); required.
-          person_id: ID of person's contributions to fetch. (ie. 9023482)
+    def list_contributions(self, **kwargs) -> List[Mapping]:
+        """
+        Retrieve a list of contributions.
+        :param kwargs: Set of keyed arguments
+          start: Find contributions given on or after a specific date (YYYY-MM-DD)
+          end: Find contributions given on or before a specific date
+          person_id: ID of person's contributions to fetch. (eg. 9023482)
           include_family: Include family members of person_id (must provide
                           person_id); default: False.
           amount_min: Contribution amounts equal or greater than.
@@ -645,101 +610,83 @@ class BreezeApi(object):
           envelope_number: Envelope number.
           batches: List of Batch numbers.
           forms: List of form IDs.
-
-        Returns:
-          List of matching contributions.
-
-        Throws:
-          BreezeError on malformed request."""
-
+        :return: List of matching contributions as dicts
+        :raises: BreezeError on malformed request
+        :raises: BreezeBadParameter on missing start or end
+        """
         if kwargs.get('include_family') and not kwargs.get('person_id'):
             raise BreezeError('include_family requires a person_id.')
 
-        args = []
-        for k, v in kwargs.items():
-            if isinstance(v, List):
-                args.append(f"{k}={'-'.join([str(val) for val in v])}")
-            elif isinstance(v, bool):
-                if v:
-                    args.append(f'{k}=1')
-            else:
-                args.append(f'{k}={v}')
+        _check_illegal_param(kwargs, self.list_contributions_params)
+        return self._request(ENDPOINTS.CONTRIBUTIONS, command='list', params=kwargs)
 
-        # if start_date:
-        #     params.append('start=%s' % start_date)
-        # if end_date:
-        #     params.append('end=%s' % end_date)
-        # if person_id:
-        #     params.append('person_id=%s' % person_id)
-        # if include_family:
-        #     if not person_id:
-        #         raise BreezeError('include_family requires a person_id.')
-        #     params.append('include_family=1')
-        # if amount_min:
-        #     params.append('amount_min=%s' % amount_min)
-        # if amount_max:
-        #     params.append('amount_max=%s' % amount_max)
-        # if method_ids:
-        #     params.append('method_ids=%s' % '-'.join(method_ids))
-        # if fund_ids:
-        #     params.append('fund_ids=%s' % '-'.join(fund_ids))
-        # if envelope_number:
-        #     params.append('envelope_number=%s' % envelope_number)
-        # if batches:
-        #     params.append('batches=%s' % '-'.join(batches))
-        # if forms:
-        #     params.append('forms=%s' % '-'.join(forms))
-        return self._request(ENDPOINTS.CONTRIBUTIONS, command='list', args=args)
-        # return self._request('%s/list?%s' % (ENDPOINTS.CONTRIBUTIONS,
-        #                                      # '&'.join(params)))
+    def list_funds(self, include_totals: bool = False) -> List[dict]:
+        """
+        List all funds
+        :param include_totals: If true include total given for each fund
+        :return: List of fund descriptions
+        """
 
-    def list_funds(self, include_totals=False):
-        """List all funds.
-
-        Args:
-          include_totals: Amount given to the fund should be returned.
-
-        Returns:
-          JSON Reponse."""
-
-        # params = []
-        # if include_totals:
-        #     params.append('include_totals=1')
         return self._request(ENDPOINTS.FUNDS,
                              command='list',
-                             args=['include_totals=1'] if include_totals else None)
-        # return self._request('%s/list?%s' %
-        #                      (ENDPOINTS.FUNDS, '&'.join(params)))
+                             params={'include_totals': '1'} if include_totals else None)
 
-    def list_campaigns(self):
-        """List of campaigns.
-
-        Returns:
-          JSON response."""
+    def list_campaigns(self) -> List[dict]:
+        """
+        List pledge campaigns
+        :return:  List of campaigns
+        """
         return self._request(ENDPOINTS.PLEDGES, command='list_campaigns')
-        # return self._request('%s/list_campaigns' % (ENDPOINTS.PLEDGES))
 
-    def list_pledges(self, campaign_id):
-        """List of pledges within a campaign.
+    def list_pledges(self, campaign_id) -> List[dict]:
+        """
+        List of pledges within a campaign
+        :param campaign_id: ID number of a campaign
+        :return: List of pledges
+        """
 
+        return self._request(ENDPOINTS.PLEDGES, command="list_pledges", params={'campaign_id': campaign_id})
+
+# -------------------------- Forms
+
+    def list_form_entries(self, form_id, details=False):
+        """return entries for the given form
         Args:
-          campaign_id: ID number of a campaign.
+          form_id:the ID of the form
+          details: Option to return all information (slower) or just names.
 
-        Returns:
-          JSON response."""
-
-        return self._request(ENDPOINTS.PLEDGES, command="list_pledges", args=[f'campaign_id={campaign_id}'])
-        # return self._request('%s/list_pledges?campaign_id=%s' % (
-        #     ENDPOINTS.PLEDGES, campaign_id
-
-    def get_tags(self, folder=None):
-        """List of tags
-
-        Args:
-          folder: If set, only return tags in this folder id
-
-        Returns:
+        returns:
           JSON response. For example:
+          [
+           {
+            "id":"11",
+            "form_id":"15326",
+            "created_on":"2021-03-09 13:04:02",
+            "person_id":null,
+            "response":{
+                "45":{
+                "id":"13",
+                "oid":"1512",
+                "first_name":"Zoe",
+                "last_name":"Washburne",
+                "created_on":"2021-03-09 13:04:03"
+                },
+                "46":"zwashburne@test.com",
+                "47":"Red"
+            }
+           },
+          ]"""
+        return self._request(ENDPOINTS.FORMS, command='list_form_entries',
+                             params={'form_id': form_id, 'details': '1' if details else None})
+
+# ------------- Tags
+
+    def get_tags(self, folder_id=None):
+        """
+        Get list of tags
+        :param folder_id: If set, only include tags in this folder id
+        :return: List of tags, for example:
+
             [
             {
                 "id":"523928",
@@ -756,15 +703,11 @@ class BreezeApi(object):
             { ... }
             ]"""
 
-        # params = []
-        # if folder:
-        #     params.append('folder_id=%s' % folder)
         return self._request(ENDPOINTS.TAGS,
                              command='list_tags',
-                             args=[f'folder_id={folder}'] if folder else [])
-        # return self._request('%s/%s/?%s' % (ENDPOINTS.TAGS.value, 'list_tags', '&'.join(params)))
+                             params={'folder_id': folder_id} if folder_id else None)
 
-    def get_tag_folders(self):
+    def get_tag_folders(self) -> List[dict]:
         """List of tag folders
 
         Args: (none)
@@ -798,50 +741,76 @@ class BreezeApi(object):
              }
              ]"""
         return self._request(ENDPOINTS.TAGS, command='list_folders')
-        # return api._request("%s/%s" % (ENDPOINTS.TAGS.value, "list_folders"))
 
-    def assign_tag(self, 
-                   person_id,
-                   tag_id):
+    def assign_tag(self,
+                   person_id: str,
+                   tag_id: str) -> bool:
         """
-        Update a person's tag/s.
-        
-        params:
-        
-        person_id: an existing person's user id
-        
-        tag_id: the id number of the tag you want to assign to the user
-        
-        output: true or false upon success or failure of tag update
+        Assign a tag to a person
+        :param person_id: The person to get the tag
+        :param tag_id: ID of tag to assign
+        :return: True if success
         """
-        args = [f'person_id={person_id}', f'tag_id={tag_id}']
-        # params.append(f'person_id={person_id}')
-        # params.append(f'tag_id={tag_id}')
-        response = self._request(ENDPOINTS.TAGS, command='assign', args=args)
-
-        # response = self._request('%s/assign?%s' %
-        #                      (ENDPOINTS.TAGS.value, '&'.join(params)))
-        
+        response = self._request(ENDPOINTS.TAGS, command='assign',
+                                 params={'person_id': person_id, 'tag_id': tag_id})
         return response
 
-    def unassign_tag(self, person_id, tag_id):
+    def unassign_tag(self, person_id: str,
+                     tag_id: str) -> bool:
         """
-        Delete a person's tag/s.
-        
-        params:
-        
-        person_id: an existing person's user id
-        
-        tag_id: the id number of the tag you want to assign to the user
-        
-        output: true or false upon success or failure of tag deletion
+        Unassign a tag from a person
+        :param person_id: Person to lose the tag
+        :param tag_id: ID of tag to lose
+        :return: True if success
         """
-        args = [f'person_id={person_id}', f'tag_id={tag_id}']
 
-        response = self._request(ENDPOINTS.TAGS, command='unassign', args=args)
-        # response = self._request('%s/unassign?%s' %
-        #                      (ENDPOINTS.TAGS.value, '&'.join(params)))
-        
-        return response            
+        response = self._request(ENDPOINTS.TAGS, command='unassign',
+                                 params={'person_id': person_id, 'tag_id': tag_id})
+
+        return response
+
+# ------------ Volunteers
+
+# APIs for for volunteer management are described by the generic Breeze API
+# specification, but there was no implementation in the Python module.
+# Since my church doesn't use Breeze volunteer management I don't have a
+# good eay to test. If there's a strong desire for them, I'll consider adding
+# them after other projects are done.
+# list_volunteers
+# Add Volunteer
+# Remove Volunteer
+# Update Volunteer
+# List Volunteer Roles
+# Add Volunteer Role
+# Remove Volunteer Role
 
 
+def breeze_api(breeze_url: str = None,
+               api_key: str = None,
+               dry_run: bool = False,
+               connection: requests.Session = requests.Session(),
+               config_name: str = HELPER_CONFIG_FILE,
+               **kwargs,
+               ) -> BreezeApi:
+    """
+    Create an instance of a Breeze api object. Parameters needed to configure the api
+    can be passed explicitly or loaded from a file using load_config().
+    :param breeze_url: Explicitly given url for the Breeze API. (load_config() key 'breeze_url')
+    :param api_key: Explicitly given API key for the Breeze API. (load_config() key 'api_key')
+    :param dry_run: Just for testing, causes breeze_api to skip all net interactions.
+    :param connection: Session if other than default (mostly for testing)
+    :param config_name: Alternate load_config() file name.
+    :param kwargs: Other parameters used by load_config()
+    :return: A BreezeAPI instance
+    """
+
+    # First check if we have an explicit url and API key
+    if not breeze_url or not api_key:
+        # url and api key not explicitly given, so load from configuration files
+        config = load_config(config_name, **kwargs)
+        breeze_url = breeze_url if breeze_url else config.get('breeze_url')
+        api_key = api_key if api_key else config.get('api_key')
+        if not breeze_url or not api_key:
+            raise BreezeError("Both breeze_url and api_key are required")
+
+    return BreezeApi(breeze_url, api_key, dry_run=dry_run, connection=connection)

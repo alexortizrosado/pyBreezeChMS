@@ -2,16 +2,20 @@ language: python
 python:
   - 3.6
   - 3.7
+  - 3.8
+  - 3.9
+  - 3.10
+  - 3.11
 install:
   - pip install -r requirements.txt
 
 script:
-  - coverage run --source=breeze setup.py test
+  - coverage run unittest
 
 notifications:
   email:
     recipients:
-      - alex@breezechms.com 
+      - daw30410@yahoo.com
     on_success: [always|never|change] # default: change
     on_failure: [always|never|change] # default: always
 

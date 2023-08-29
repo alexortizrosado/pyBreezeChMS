@@ -17,27 +17,31 @@ class MockConnection(object):
     """Mock requests connection."""
 
     def __init__(self, response, url=None, params=None, headers=None):
-        self._url = url
-        self._params = params
+        self._url = []
+        self._params = []
         self._headers = headers
         self._response = response
         self._timeout = None
         self._verify = None
 
     def post(self, url, params, headers, timeout):
-        self._url = url
-        self._params = params
+        self._url.append(url)
+        self._params.append(params)
         self._headers = headers
         self._timeout = timeout
         return self._response
 
     def get(self, url, verify, params, headers, timeout):
-        self._url = url
+        self._url.append(url)
         self._verify = verify
-        self._params = params
+        self._params.append(params)
         self._headers = headers
         self._timeout = timeout
         return self._response
+
+    def reset(self):
+        self.url = []
+        self.params = []
 
     @property
     def url(self):
@@ -77,23 +81,38 @@ FAKE_SUBDOMAIN = 'https://demo.breezechms.com'
 
 class BreezeApiTestCase(unittest.TestCase):
 
+    # TODO: Need tests for verify_params
+
+    def make_api(self, result, error=False):
+        self.response = MockResponse(200, result, error=error)
+        self.connection = MockConnection(self.response)
+        self.breeze_api = breeze.BreezeApi(
+            breeze_url=FAKE_SUBDOMAIN,
+            api_key=FAKE_API_KEY,
+            connection=self.connection)
+
     def validate_url(self,
-                     url: str,
                      endpoint: ENDPOINTS,
+                     connection: MockConnection = None,
                      command: str = '',
-                     args: dict = dict(),
-                     arg_alias: dict = dict()):
+                     expect_params: dict = dict(),
+                     arg_alias: dict = dict(),
+                     select_query: int = 0):
+        connection = connection if connection else self.connection
+        url = connection.url[select_query]
+        expect_params = breeze._transform_settings(expect_params)
+        got_params = connection.params[select_query]
         base, extra = url.split('?')
         expect_url = f'{FAKE_SUBDOMAIN}/api/{endpoint.value}/{command}'
         self.assertEqual(base, expect_url, f'Expected {expect_url}, got {base}')
 
-        expectargs = dict(args)
+        eparams = dict(expect_params)
 
-        if extra:
-            gotargs = {k: v for k, v in [item.split('=') for item in extra.split('&')]}
-            for ek, ev in args.items():
-                gk = arg_alias.get(ek, ek)
-                gv = gotargs.get(gk)
+        if eparams:
+            gotparams = dict(got_params)
+            for ek, ev in expect_params.items():
+                gk = arg_alias.get(ek, ek)  # still needed?
+                gv = gotparams.get(gk)
                 if gv is None:
                     self.fail(f'Missing argument {ek}:{ev}')
                 if ev is True:
@@ -102,32 +121,28 @@ class BreezeApiTestCase(unittest.TestCase):
                     ev = '-'.join(str(v) for v in ev)
                 else:
                     ev = str(ev)
+                # Probably need to handle json strings above
 
                 self.assertEqual(gv, ev, f'Expected {ev} for {ek}, got {gv}')
-                del gotargs[gk]
-                del expectargs[ek]
+                del gotparams[gk]
+                del eparams[ek]
 
-            if gotargs:
+            if gotparams:
                 # unexpected arguments
-                self.fail(f'Unexpected arguments in {url}: {gotargs}')
+                self.fail(f'Unexpected arguments in {url}: {gotparams}')
 
-        if expectargs:
+        if eparams:
             # Missing arguments
-            self.fail(f'Missing arguments in {url}: {expectargs}')
+            self.fail(f'Missing arguments in {url}: {eparams}')
 
     def test_request_header_override(self):
-        response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
+        self.make_api(json.dumps({'name': 'Some Data.'}))
 
         headers = {'Additional-Header': 'Data'}
-        breeze_api._request(ENDPOINTS.FUNDS, headers=headers)
+        self.breeze_api._request(ENDPOINTS.FUNDS, headers=headers)
         self.assertTrue(
             set(headers.items()).issubset(
-                set(connection._headers.items())))
+                set(self.connection._headers.items())))
 
     def test_invalid_subdomain(self):
         self.assertRaises(breeze.BreezeError, lambda: breeze.BreezeApi(
@@ -141,15 +156,9 @@ class BreezeApiTestCase(unittest.TestCase):
                                                    breeze_url=''))
 
     def test_bad_connection(self):
-        response = MockResponse(400, json.dumps({'errorCode': '400'}), error=True)
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-                breeze_url=FAKE_SUBDOMAIN,
-                api_key=FAKE_API_KEY,
-                connection=connection)
-
+        self.make_api({'errorCode': '400'}, error=True)
         self.assertRaises(breeze.BreezeError,
-                          lambda: breeze_api.get_profile_fields())
+                          lambda: self.breeze_api.get_profile_fields())
 
     def test_missing_api_key(self):
         self.assertRaises(
@@ -161,29 +170,19 @@ class BreezeApiTestCase(unittest.TestCase):
             lambda: breeze.BreezeApi(api_key='',
                                      breeze_url=FAKE_SUBDOMAIN))
 
-    def test_get_people(self):
-        response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
+    def test_list_people(self):
+        self.make_api(json.dumps({'name': 'Some Data.'}))
 
         args = {'limit': 1, 'offset': 1, 'details': True}
-        result = breeze_api.get_people(**args)
-        self.validate_url(connection.url, ENDPOINTS.PEOPLE, args=args)
-        self.assertEqual(json.loads(response.content), result)
+        result = self.breeze_api.list_people(**args)
+        self.validate_url(ENDPOINTS.PEOPLE, expect_params=args)
+        self.assertEqual(json.loads(self.response.content), result)
 
     def test_get_profile_fields(self):
-        response = MockResponse(200, json.dumps({'name': 'Some Data.'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        result = breeze_api.get_profile_fields()
-        self.validate_url(connection.url, ENDPOINTS.PROFILE_FIELDS)
-        self.assertEqual(json.loads(response.content), result)
+        self.make_api(json.dumps({'name': 'Some Data.'}))
+        result = self.breeze_api.get_profile_fields()
+        self.validate_url(ENDPOINTS.PROFILE_FIELDS)
+        self.assertEqual(json.loads(self.response.content), result)
 
     def test_account_summary(self):
         rsp = {
@@ -206,45 +205,28 @@ class BreezeApiTestCase(unittest.TestCase):
                 }
             }
         }
-        response = MockResponse(200, json.dumps(rsp))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        result = breeze_api.get_account_summary()
-        self.validate_url(connection.url, ENDPOINTS.ACCOUNT_SUMMARY)
-        self.assertEqual(json.loads(response.content), result)
+        self.make_api(json.dumps(rsp))
+        result = self.breeze_api.get_account_summary()
+        self.validate_url(ENDPOINTS.ACCOUNT_SUMMARY)
+        self.assertEqual(json.loads(self.response.content), result)
 
     def test_get_person_details(self):
-        response = MockResponse(200, json.dumps({'person_id': 'Some Data.'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-
+        self.make_api(json.dumps({"person_id": "Some Data."}))
         person_id = '123456'
-        result = breeze_api.get_person_details(person_id)
-        self.validate_url(connection.url, ENDPOINTS.PEOPLE, command=str(person_id))
-        self.assertEqual(json.loads(response.content), result)
+        result = self.breeze_api.get_person_details(person_id)
+        self.validate_url(ENDPOINTS.PEOPLE, command=str(person_id))
+        self.assertEqual(self.response.content, json.dumps(result))
 
     def test_add_person(self):
-        response = MockResponse(200, json.dumps([{'person_id': 'Some Data.'}]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
+        self.make_api(json.dumps([{'person_id': 'Some Data.'}]))
 
         first_name = 'Jiminy'
         last_name = 'Cricket'
-        args = {'first_name': first_name, 'last_name': last_name}
-        arg_alias = {'first_name': 'first', 'last_name': 'last'}
+        args = {'first': first_name, 'last': last_name}
 
-        result = breeze_api.add_person(**args)
-        self.validate_url(connection.url, ENDPOINTS.PEOPLE, command='add', args=args, arg_alias=arg_alias)
-        self.assertEqual(json.loads(response.content), result)
+        result = self.breeze_api.add_person(**args)
+        self.validate_url(ENDPOINTS.PEOPLE, command='add', expect_params=args)
+        self.assertEqual(json.loads(self.response.content), result)
 
     def test_update_person(self):
         # With no fields_json
@@ -263,106 +245,113 @@ class BreezeApiTestCase(unittest.TestCase):
         self.update_person_test(fields=fields)
 
     def update_person_test(self, fields: dict = None):
-        response = MockResponse(200, json.dumps([{'person_id': 'Some Data.'}]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
+        self.make_api(json.dumps([{'person_id': 'Some Data.'}]))
 
         person_id = '123456'
         fields_json = json.dumps([fields], separators=(',', ':')) if fields else '[]'
         args = {'person_id': person_id, 'fields_json': fields_json}
-        result = breeze_api.update_person(**args)
-        self.validate_url(connection.url, ENDPOINTS.PEOPLE, command='update', args=args)
-        self.assertEqual(json.loads(response.content), result)
+        result = self.breeze_api.update_person(**args)
+        self.validate_url(ENDPOINTS.PEOPLE, command='update', expect_params=args)
+        self.assertEqual(json.loads(self.response.content), result)
 
-    def test_get_events(self):
-        response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
+    def test_list_calendars(self):
+        ret = [{'id': 0, 'name': 'Main'}, {'id': 987, 'name': 'Private'}]
+        self.make_api(json.dumps(ret))
+        result = self.breeze_api.list_calendars()
+        self.validate_url(ENDPOINTS.EVENTS, command='calendars/list')
+        self.assertEqual(json.loads(self.response.content), result)
 
-        args = {'start_date': '3-1-2014', 'end_date': '3-7-2014'}
-        arg_alias = {'start_date': 'start', 'end_date': 'end'}
-        # start_date = '3-1-2014'
-        # end_date = '3-7-2014'
-        result = breeze_api.get_events(**args)
-        self.validate_url(connection.url, ENDPOINTS.EVENTS, args=args, arg_alias=arg_alias)
-        self.assertEqual(json.loads(response.content), result)
+    def test_list_events(self):
+        self.make_api(json.dumps({'event_id': 'Some Data.'}))
+
+        args = {'start': '3-1-2014', 'end': '3-7-2014'}
+        result = self.breeze_api.list_events(**args)
+        self.validate_url(ENDPOINTS.EVENTS, expect_params=args)
+        self.assertEqual(json.loads(self.response.content), result)
+
+    def test_list_event(self):
+        inst_id = '235235'
+        self.make_api(json.dumps({'id': inst_id, 'name': 'Raffle'}))
+        result = self.breeze_api.list_event(inst_id)
+        self.validate_url(ENDPOINTS.EVENTS, command="list_event",
+                          expect_params={'instance_id': inst_id})
+        self.assertEqual('Raffle', result.get('name'))
 
     def test_event_check_in(self):
-        response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        args = {'person_id': 'person', 'event_instance_id': 'event'}
-        arg_alias = {'event_instance_id': 'instance_id'}
-        result = breeze_api.event_check_in(**args)
-        self.assertEqual(json.loads(response.content), result)
+        # response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
+        self.make_api(json.dumps(True))
+        args = {'person_id': 'person', 'instance_id': 'event'}
+        result = self.breeze_api.event_check_in(**args)
+        self.assertTrue(result)
+        args['direction'] = 'in'
 
-        self.validate_url(connection.url, ENDPOINTS.EVENTS, command='add', args=args, arg_alias=arg_alias)
+        self.validate_url(ENDPOINTS.EVENTS, command='attendance/add', expect_params=args)
 
     def test_event_check_out(self):
-        response = MockResponse(200, json.dumps({'event_id': 'Some Data.'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        args = {'person_id': 'person', 'event_instance_id': 'event'}
-        args_alias = {'event_instance_id': 'instance_id'}
-        result = breeze_api.event_check_out(**args)
-        self.assertEqual(json.loads(response.content), result)
+        self.make_api(json.dumps({'event_id': 'Some Data.'}))
+        args = {'person_id': 'person', 'instance_id': 'event'}
+        # args_alias = {'event_instance_id': 'instance_id'}
+        result = self.breeze_api.event_check_out(**args)
+        self.assertEqual(json.loads(self.response.content), result)
+        args['direction'] = 'out'
+        self.validate_url(ENDPOINTS.EVENTS, command='attendance/add', expect_params=args)
 
-        self.validate_url(connection.url, ENDPOINTS.EVENTS, command='delete', args=args, arg_alias=args_alias)
+    def test_delete_attendance(self):
+        self.make_api('true')
+        result = self.breeze_api.delete_attendance('person', 'instance')
+        self.assertEqual(True, result)
+        self.validate_url(ENDPOINTS.EVENTS, command='attendance/delete',
+                          expect_params={'person_id': 'person', 'instance_id': 'instance'})
+
+    def test_list_attendance(self):
+        expect_result = json.dumps([{'stuff': 'value'}])
+        self.make_api(expect_result)
+        instance_id = 'inst'
+        result = self.breeze_api.list_attendance(instance_id=instance_id, details=True)
+        self.validate_url(ENDPOINTS.EVENTS, command='attendance/list',
+                          expect_params={'details': 'true', 'instance_id': instance_id})
+        r1 = result[0]
+        self.assertEqual('value', r1.get('stuff'))
+
+    def test_list_eligible_people(self):
+        ret = [{'id': '123', 'first_name': 'alex'}]
+        self.make_api(json.dumps(ret))
+        instance = '123459'
+        result = self.breeze_api.list_eligible_people(instance)
+        self.validate_url(ENDPOINTS.EVENTS, command='attendance/eligible',
+                          expect_params={'instance_id': instance})
+        self.assertEqual('alex', (result[0]).get('first_name'))
 
     def test_add_contribution(self):
         payment_id = '12345'
-        response = MockResponse(
-            200, json.dumps({'success': True,
-                             'payment_id': payment_id}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
+        self.make_api(json.dumps({'success': True, 'payment_id': payment_id}))
 
         args = {
-            'date': '3-1-2014',
-            'name': 'John Doe',
+            'date': '2014-01-03',
+            # 'name': 'John Doe',
             'person_id': '123456',
             'uid': 'UID',
             'processor': 'Processor',
             'method': 'Method',
-            'funds_json': "[{'id': '12345', 'name': 'Fund', 'amount', '150.00' }]",
+            'funds_json': [{'id': '12345', 'name': 'Fund', 'amount': '150.00'}],
             'amount': '150.00',
             'group': 'Group',
             'batch_number': '100',
-            'batch_name': 'Batch Name'
+            'batch_name': 'Batch Name',
             }
 
-        result = breeze_api.add_contribution(**args)
+        result = self.breeze_api.add_contribution(**args)
 
-        self.validate_url(connection.url, ENDPOINTS.CONTRIBUTIONS, command='add', args=args)
+        self.validate_url(ENDPOINTS.CONTRIBUTIONS, command='add', expect_params=args)
         self.assertEqual(payment_id, result)
+
+        self.assertRaises(breeze.BreezeBadParameter, lambda: self.breeze_api.add_contribution(notaparm=''))
 
     def test_edit_contribution(self):
         new_payment_id = '99999'
-        response = MockResponse(
-            200, json.dumps({'success': True,
-                             'payment_id': new_payment_id}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
+        self.make_api(json.dumps({'success': True, 'payment_id': new_payment_id}))
         args = {
-            'date': '3-1-2014',
+            'date': '2014-01-03',
             'name': 'Jane Doe',
             'person_id': '123456',
             'uid': 'UID2',
@@ -375,22 +364,17 @@ class BreezeApiTestCase(unittest.TestCase):
             'batch_name': 'Batch Name'
             }
 
-        result = breeze_api.edit_contribution(**args)
-        self.validate_url(connection.url, ENDPOINTS.CONTRIBUTIONS, command='edit', args=args)
+        result = self.breeze_api.edit_contribution(**args)
+        self.validate_url(ENDPOINTS.CONTRIBUTIONS, command='edit', expect_params=args)
+        # self.assertTrue(result.get('success'))
         self.assertEqual(new_payment_id, result)
 
     def test_list_contributions(self):
-        response = MockResponse(
-            200, json.dumps({'success': True,
+        self.make_api(json.dumps({'success': True,
                              'payment_id': '555'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
         args = {
-            'start_date': '3-1-2014',
-            'end_date': '3-2-2014',
+            'start': '3-1-2014',
+            'end': '3-2-2014',
             'person_id': '12345',
             'include_family': True,
             'amount_min': '123456',
@@ -402,32 +386,26 @@ class BreezeApiTestCase(unittest.TestCase):
             'forms': ['400', '401', '402'],
         }
 
-        result = breeze_api.list_contributions(**args)
-        self.validate_url(connection.url, ENDPOINTS.CONTRIBUTIONS, command='list', args=args)
-        self.assertEqual(json.loads(response.content), result)
+        result = self.breeze_api.list_contributions(**args)
+        self.validate_url(ENDPOINTS.CONTRIBUTIONS, command='list', expect_params=args)
+        self.assertEqual(json.loads(self.response.content), result)
 
         # Ensure that an error gets thrown if person_id is not
         # provided with include_family.
         self.assertRaises(
             breeze.BreezeError,
-            lambda: breeze_api.list_contributions(include_family=True))
+            lambda: self.breeze_api.list_contributions(include_family=True))
 
     def test_delete_contribution(self):
         payment_id = '12345'
-        response = MockResponse(
-            200, json.dumps({'success': True,
+        self.make_api(json.dumps({'success': True,
                              'payment_id': payment_id}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
         args = {'payment_id': payment_id}
-        self.assertEqual(payment_id, breeze_api.delete_contribution(**args))
-        self.validate_url(connection.url, ENDPOINTS.CONTRIBUTIONS, command='delete', args=args)
+        self.assertTrue(self.breeze_api.delete_contribution(**args))
+        self.validate_url(ENDPOINTS.CONTRIBUTIONS, command='delete', expect_params=args)
 
     def test_list_form_entries(self):
-        response = MockResponse(200, json.dumps([{
+        self.make_api(json.dumps([{
             "102519456": {
                 "id": "102519456",
                 "oid": "51124",
@@ -439,151 +417,100 @@ class BreezeApiTestCase(unittest.TestCase):
                 }
               }
         }]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
         args = {'form_id': 329}
-        result = breeze_api.list_form_entries(**args)
-        self.assertEqual(json.loads(response.content), result)
-        self.validate_url(connection.url, ENDPOINTS.FORMS, command='list_form_entries', args=args)
+        result = self.breeze_api.list_form_entries(**args)
+        self.assertEqual(json.loads(self.response.content), result)
+        self.validate_url(ENDPOINTS.FORMS, command='list_form_entries', expect_params=args)
 
     def test_list_funds(self):
-        response = MockResponse(200, json.dumps([{
+        self.make_api(json.dumps([{
             "id": "12345",
             "name": "Adult Ministries",
             "tax_deductible": "1",
             "is_default": "0",
             "created_on": "2014-09-10 02:19:35"
         }]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
         args = {'include_totals': True}
-        result = breeze_api.list_funds(**args)
-        self.assertEqual(json.loads(response.content), result)
-        self.validate_url(connection.url, ENDPOINTS.FUNDS, command='list', args=args)
+        result = self.breeze_api.list_funds(**args)
+        self.assertEqual(json.loads(self.response.content), result)
+        args['include_totals'] = '1'
+        self.validate_url(ENDPOINTS.FUNDS, command='list', expect_params=args)
 
     def test_list_campaigns(self):
-        response = MockResponse(200, json.dumps([{
+        self.make_api(json.dumps([{
             "id": "12345",
             "name": "Building Campaign",
             "number_of_pledges": 65,
             "total_pledged": 13030,
             "created_on": "2014-09-10 02:19:35"
         }]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        result = breeze_api.list_campaigns()
-        self.assertEqual(json.loads(response.content),  result)
-        self.validate_url(connection.url, ENDPOINTS.PLEDGES, command='list_campaigns')
+        result = self.breeze_api.list_campaigns()
+        self.assertEqual(json.loads(self.response.content),  result)
+        self.validate_url(ENDPOINTS.PLEDGES, command='list_campaigns')
 
     def test_false_response(self):
-        response = MockResponse(200, json.dumps(False))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        self.assertRaises(breeze.BreezeError, lambda: breeze_api.event_check_in('1', '2'))
+        self.make_api(json.dumps(False))
+        self.assertRaises(breeze.BreezeError, lambda: self.breeze_api.event_check_in('1', '2'))
 
     def test_errors_response(self):
-        response = MockResponse(200, json.dumps({'errors': 'Some Errors'}))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        self.assertRaises(breeze.BreezeError, lambda: breeze_api.event_check_in('1', '2'))
+        self.make_api(json.dumps({'errors': 'Some Errors'}))
+        self.assertRaises(breeze.BreezeError, lambda: self.breeze_api.event_check_in('1', '2'))
 
     def test_list_pledges(self):
-        response = MockResponse(200, json.dumps([{
+        self.make_api(json.dumps([{
             "id": "12345",
             "name": "Building Campaign",
             "number_of_pledges": 65,
             "total_pledged": 13030,
             "created_on": "2014-09-10 02:19:35"
         }]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
         args = {'campaign_id': 329}
-        result = breeze_api.list_pledges(**args)
-        self.assertEqual(json.loads(response.content), result)
-        self.validate_url(connection.url, ENDPOINTS.PLEDGES, command='list_pledges', args=args)
+        result = self.breeze_api.list_pledges(**args)
+        self.assertEqual(json.loads(self.response.content), result)
+        self.validate_url(ENDPOINTS.PLEDGES, command='list_pledges', expect_params=args)
 
     def test_get_tags(self):
-        response = MockResponse(200, json.dumps([{
+        self.make_api(json.dumps([{
             "id": "523928",
             "name": "4th & 5th",
             "created_on": "2018-09-10 09:19:40",
             "folder_id": "1539"
         }]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        args = {'folder': 1539}
-        args_alias = {'folder': 'folder_id'}
-        result = breeze_api.get_tags(**args)
-        self.assertEqual(json.loads(response.content), result)
-        self.validate_url(connection.url, ENDPOINTS.TAGS, command='list_tags', args=args, arg_alias=args_alias)
+        args = {'folder_id': 1539}
+        result = self.breeze_api.get_tags(**args)
+        self.assertEqual(json.loads(self.response.content), result)
+        self.validate_url(ENDPOINTS.TAGS, command='list_tags', expect_params=args)
 
     def test_get_tag_folders(self):
-        response = MockResponse(200, json.dumps([{
+        self.make_api(json.dumps([{
             "id": "1234567",
             "parent_id": "0",
             "name": "All Tags",
             "created_on": "2018-06-05 18:12:34"
         }]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        result = breeze_api.get_tag_folders()
-        self.assertEqual(json.loads(response.content), result)
-        self.validate_url(connection.url, ENDPOINTS.TAGS, command='list_folders')
+
+        result = self.breeze_api.get_tag_folders()
+        self.assertEqual(json.loads(self.response.content), result)
+        self.validate_url(ENDPOINTS.TAGS, command='list_folders')
 
     def test_assign_tag(self):
-        response = MockResponse(200, json.dumps({
+        self.make_api(json.dumps({
             'success': True,
              }))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
         args = {'person_id': 14134, 'tag_id': 1569323}
-        result = breeze_api.assign_tag(**args)
-        self.assertEqual(json.loads(response.content), result)
-        self.validate_url(connection.url, ENDPOINTS.TAGS, command='assign', args=args)
+        result = self.breeze_api.assign_tag(**args)
+        self.assertEqual(json.loads(self.response.content), result)
+        self.validate_url(ENDPOINTS.TAGS, command='assign', expect_params=args)
 
     def test_unassign_tag(self):
         args = {'person_id': 17442, 'tag_id': 123156235}
-        response = MockResponse(
-            200, json.dumps({'success': True
-                             }))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
-        result = breeze_api.unassign_tag(**args)
-        self.assertEqual(json.loads(response.content), result)
-        self.validate_url(connection.url, ENDPOINTS.TAGS, command='unassign', args=args)
+        self.make_api(json.dumps({'success': True}))
+        result = self.breeze_api.unassign_tag(**args)
+        self.assertEqual(json.loads(self.response.content), result)
+        self.validate_url(ENDPOINTS.TAGS, command='unassign', expect_params=args)
 
     def test_add_event(self):
-        response = MockResponse(200, json.dumps([{
+        self.make_api(json.dumps([{
             "id": "8324092",
             "oid": "1234",
             "event_id": "4567",
@@ -593,26 +520,37 @@ class BreezeApiTestCase(unittest.TestCase):
             "end_datetime": "2016-06-23 20:45:00",
             "created_on": "2016-06-23 15:40:06"
         }]))
-        connection = MockConnection(response)
-        breeze_api = breeze.BreezeApi(
-            breeze_url=FAKE_SUBDOMAIN,
-            api_key=FAKE_API_KEY,
-            connection=connection)
 
         args = {
             'name': 'Test Event',
-            'start_date': '2022-09-01',
-            'end_date': '2023-10-01',
+            'starts_on': '2022-09-01',
+            'ends_on': '2023-10-01',
             'all_day': True,
             'description': 'This is a test event',
             'category_id': 'secret',
             'event_id': 2809215
         }
-        arg_alias = {'start_date': 'starts_on',
-                     'end_date': 'ends_on'}
-        result = breeze_api.add_event(**args)
-        self.validate_url(connection.url, ENDPOINTS.EVENTS, command='add', args=args, arg_alias=arg_alias)
-        self.assertEqual(json.loads(response.content), result)
+        result = self.breeze_api.add_event(**args)
+        self.validate_url(ENDPOINTS.EVENTS, command='add', expect_params=args)
+        self.assertEqual(json.loads(self.response.content), result)
+
+    def test_failed_request(self):
+        self.make_api(json.dumps({'success': False, 'errors': 23}))
+        self.assertRaises(breeze.BreezeError, lambda: self.breeze_api.list_people())
+
+    def test_build(self):
+        url = 'https://4breezetest.breezechms.com'
+        overrides = {'breeze_url': url, 'api_key': 'zyzzy'}
+        api = breeze.breeze_api(overrides=overrides)
+        self.assertEqual(url, api.breeze_url)
+
+    def test_build_bad_url(self):
+        self.assertRaises(breeze.BreezeError,
+                          lambda: breeze.breeze_api(breeze_url='https://4breeetest.breezy.com',
+                                                    api_key='prover'))
+        overrides = {'breeze_url': None, 'api_key': None}
+        self.assertRaises(breeze.BreezeError,
+                          lambda: breeze.breeze_api(overrides=overrides))
 
 
 if __name__ == '__main__':

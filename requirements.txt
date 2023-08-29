@@ -1,2 +1,3 @@
 requests>=1.1.0
+combine_settings>=1.0.1
 coveralls

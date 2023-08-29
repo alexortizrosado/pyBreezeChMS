@@ -1,0 +1,35 @@
+[build-system]
+requires = ['setuptools>=61.0',
+            'combine_settings>=1.0.1',
+            ]
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'breeze_chms_api'
+version = '1.0.1'
+authors = [
+  { name="David A. Willcox", email="daw30410@yahoo.com" },
+]
+description = 'Python interface to BreezeChMS REST API.'
+readme = 'README.md'
+license = { file='LICENSE' }
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+]
+dependencies = [
+                "combine_settings>=1.0.1",
+                "requests>=1.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/dawillcox/pyBreezeChMS"
+"Bug Tracker" = "https://github.com/dawillcox/pyBreezeChMS/issues"
+README = "https://github.com/dawillcox/pyBreezeChMS/README.md"
+DOCUMENTATION = "https://github.com/dawillcox/pyBreezeChMS/DOCUMENTATION.md"
+Changelog = "https://github.com/dawillcox/pyBreezeChMS/CHANGELOG.md"
+REPOSITORY = "https://github.com/dawillcox/pyBreezeChMS.git"

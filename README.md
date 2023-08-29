@@ -3,30 +3,104 @@ PyBreezeChMS
 
 Python interface to BreezeChMS REST API http://www.breezechms.com
 
+Leaving this in for now:
 [![Build Status](https://travis-ci.org/alexortizrosado/pyBreezeChMS.svg?branch=master)](https://travis-ci.org/alexortizrosado/pyBreezeChMS) [![Coverage Status](https://coveralls.io/repos/alexortizrosado/pyBreezeChMS/badge.png)](https://coveralls.io/r/aortiz32/pyBreezeChMS)
+
+Note: This is an adaption of [PyBreezeChMS](https://github.com/alexortizrosado/pyBreezeChMS),
+the "official" Python implementation of the [Breeze API](https://app.breezechms.com/api).
+However, the owner of said repository is apparently no longer with Breeze,
+and doesn't respond to email or issues in that repository.
+
+Since I've wanted several changes and enhancements, I've cloned that original
+and extended it. However, what started as a minor cleanup, mostly with
+the goal of making it a pip-installable package, it's turned into a
+fairly major rewrite. While vestiges of the original version remain, it's
+a pretty major rewrite. Some things that motivated that:
+* Upgrade to Python 3.6 or later; earlier versions are no longer supported.
+* Using at least a current (maybe not latest) PEP coding standard.
+* A number of method parameter names in the Python implementation differ
+from the underlying implementation in the REST description. I found
+that confusing, so parameter names in this implementation match the
+REST description.
+* I found a number of bugs in my testing.
+* In my many years of coding, my credo has been "anything worth coding"
+is worth coding once," so a great many repetitive instances of
+similar code have been consolidated.
+
+Consequentially, I'm calling this a new work, inspired by and including
+a few internal pieces of the original.
+
+And a note: I found that the original Python implementation doesn't
+implement all the REST APIs. Volunteer management, for example, is
+missing. I haven't added them. Maybe in a future release.
 
 ## Installation
 
-Before using pyBreezeChMS, you'll need to install the [requests](http://docs.python-requests.org/en/latest/) library:
+    $ pip install breeze_chms_api
 
-    $ sudo pip install requests
+This will automatically install the required packages.
 
 ## Getting Started
 
-```python
-from breeze import breeze
+The preferred method is to set up configuration files 
+for [combine_settings](https://pypi.org/project/combine-settings/)
+to specify the two parameters need to access the breeze_api:
+* `breeze_url`: Your breeze access url.
+* `api_key`: Your organization's API key.
 
-breeze_api = breeze.BreezeApi(
-    breeze_url='https://your_subdomain.breezechms.com',
-    api_key='YourApiKey')
+Those settings must be in a file named `breeze_maker.yml`.
+
+With those configuration files set up appropriately, you can instantiate
+a `BreezeAPI` simply by:
+
+```python
+from breeze_chms_api import breeze
+
+breeze_api = breeze.breeze_api()
 ```
+
+`breeze.breeze_api()` also passes other keyword parameters through to `config_builder`
+if needed. You can also override the default configuration file name with
+the `config_name` parameter.
+
+If you don't want to use `config_builder` you can pass `breeze_url` and `breeze_api`
+directly to `breeze.breeze_api()`.
+
 
 To get a JSON of all people:
 
 ```python
-
 people = breeze_api.get_people()
 ```
+
+## Other methods
+
+* `get_account_summary`: Retrieve details of your account.
+* `get_peiple`: Get information about people.
+* `get_profile_fields`: Your organization's profile fields.
+* `get_person_details`: Details about a specific person from id.
+* `add_person`: Add a person.
+* `update_person`: Update a person's information.
+* `get_events`: Get a list of selected events.
+* `add_event`: Add an event
+* `event_check_in`: Check someone in to an event.
+* `event_check_out`: Remove someone from an event.
+* `add_contribution`: Add a contribution.
+* `edit_contribution`: Edit an existing contribution.
+* `delete_contribution`: Delete a contribution.
+* `list_form_entries`: Get submitted forms.
+* `list_contributions`: List selected contributions.
+* `list_funds`: List your contribution funds.
+* `list_campaigns`: List pledge campaigns.
+* `list_pledges`: List pledges in a campaign.
+* `get_tags`: Get information about your tags.
+* `get_tag_folders`: And your tag folders.
+* `assign_tag`: Assign a person to a tag.
+* `unassign_tag` and unassign them.
+
+The parameters and returns of all of the above are described in the 
+[Breeze API Reference Guide](https://app.breezechms.com/api). Look there,
+or the source of this package as necessary.
 
 ## Test
     pip install python-coveralls
