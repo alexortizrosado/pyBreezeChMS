@@ -7,10 +7,13 @@ Usage:
 import json
 import unittest
 import requests
+import os
 
 from breeze_chms_api import breeze
 from breeze_chms_api.breeze import ENDPOINTS
 from typing import List
+
+TEST_FILES_DIR = os.path.join(os.path.split(__file__)[0], 'test_files')
 
 
 class MockConnection(object):
@@ -178,11 +181,31 @@ class BreezeApiTestCase(unittest.TestCase):
         self.validate_url(ENDPOINTS.PEOPLE, expect_params=args)
         self.assertEqual(json.loads(self.response.content), result)
 
+    def _make_profile_field_api(self) -> List[dict]:
+        with open(os.path.join(TEST_FILES_DIR, 'profiles.json'), 'r') as f:
+            json_str = f.read()
+        self.make_api(json_str)
+        return json_str
+
     def test_get_profile_fields(self):
-        self.make_api(json.dumps({'name': 'Some Data.'}))
+        json_str = self._make_profile_field_api()
         result = self.breeze_api.get_profile_fields()
+        expect = json.loads(json_str)
         self.validate_url(ENDPOINTS.PROFILE_FIELDS)
-        self.assertEqual(json.loads(self.response.content), result)
+        # self.assertEqual(expect[])
+        self.assertEqual(expect[3].get('name'), result[3].get('name'))
+
+    def test_get_field_spec_by_name(self):
+        self._make_profile_field_api()
+        field = self.breeze_api.get_field_spec_by_name('Church Relationship')
+        self.assertEqual('2114298709', field.get('field_id'))
+        self.assertEqual('Church Relationships', field.get('section_spec').get('name'))
+
+    def test_get_field_spec_by_id(self):
+        self._make_profile_field_api()
+        field = self.breeze_api.get_field_spec_by_id('2114298972')
+        self.assertEqual('Member Number', field.get('name'))
+        self.assertEqual('Membership Status', field.get('section_spec').get('name'))
 
     def test_account_summary(self):
         rsp = {

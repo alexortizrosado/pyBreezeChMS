@@ -6,7 +6,8 @@ Python interface to BreezeChMS REST API http://www.breezechms.com
 This is an adaption of [PyBreezeChMS](https://github.com/alexortizrosado/pyBreezeChMS),
 the "official" Python implementation of the [Breeze API](https://app.breezechms.com/api).
 However, the owner of said repository is apparently no longer with Breeze,
-and doesn't respond to email or issues in that repository.
+and doesn't respond to email or issues in that repository. This is distributed
+as a [PyPI package](https://pypi.org/project/breeze-chms-api/).
 
 Since I've wanted several changes and enhancements, I've cloned that original
 and extended it. However, what started as a minor cleanup, mostly with
@@ -33,7 +34,7 @@ missing. I haven't added them. Maybe in a future release.
 
 ## Installation
 
-    $ pip install breeze_chms_api
+    $ pip install breeze-chms-api
 
 This will automatically install the required packages.
 
@@ -67,21 +68,28 @@ directly to `breeze.breeze_api()`.
 To get a JSON of all people:
 
 ```python
-people = breeze_api.get_people()
+people = breeze_api.list_people()
 ```
 
 ## Other methods
 
 * `get_account_summary`: Retrieve details of your account.
-* `get_peiple`: Get information about people.
+* `list_peiple`: Get information about people.
 * `get_profile_fields`: Your organization's profile fields.
+* `get_field_spec_by_id`: Get profile field specification by id
+* `get_field_spec_by_name:` Get profile field specification for named field
 * `get_person_details`: Details about a specific person from id.
 * `add_person`: Add a person.
 * `update_person`: Update a person's information.
-* `get_events`: Get a list of selected events.
+* `list_calendars`: Get a list of calendars.
+* `list_events`: Get a list of selected events.
+* `list_event`: Get information about a specific event.
 * `add_event`: Add an event
 * `event_check_in`: Check someone in to an event.
 * `event_check_out`: Remove someone from an event.
+* `delete_attendance`: Delete attendance records for a person from an event.
+* `list_eligible_people`: List people eligible for an event.
+* `list_attendance`: List attendance for an event.
 * `add_contribution`: Add a contribution.
 * `edit_contribution`: Edit an existing contribution.
 * `delete_contribution`: Delete a contribution.
@@ -103,10 +111,9 @@ For deails of this Python implementation see
 [this documentation](https://github.com/dawillcox/pyBreezeChMS/blob/master/DOCUMENTATION.md).
 
 ## Test
-    pip install python-coveralls
-    python -m unittest tests.breeze_test
-    coverage run --source=breeze setup.py test
-    coverage report
+    pip install coverage combine-settings
+    coverage run -m unittest
+    coverage report -m
 
 ## How do I make a contribution?
 Never made an open source contribution before? Wondering how contributions work in the in our project? Here's a quick rundown!

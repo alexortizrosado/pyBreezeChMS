@@ -60,9 +60,22 @@ def get_account_summary(self) -> dict:
 ##### Get Profile Fields
 ```Python
 def get_profile_fields(self) -> List[dict]:
-    """
-    List profile fields from your database.
+    """List profile fields from your database.
+    To be clear, this is a list of profile sections, each section
+    having a list of field specifications in that section.
+    Each field specification has a new 'section_spec' item
+    that refers back to the containing section, which
+    can give the setion name among other things
     :return: List of descriptors of profile fields
+    """
+```
+##### Get Profile Field Specification by ID
+```Python
+def get_field_spec_by_id(self, field_id: str) -> dict:
+    """
+    Return profile spec for given field id
+    :param field_id: Field id
+    :return: Field specification
     """
 ```
 ##### List People
@@ -382,5 +395,142 @@ def delete_contribution(self, payment_id):
     :return: List of matching contributions as dicts
     :raises: BreezeError on malformed request
     :raises: BreezeBadParameter on missing start or end
+    """
+```
+##### List Funds
+```Python
+def list_funds(self, include_totals: bool = False) -> List[dict]:
+    """
+    List all funds
+    :param include_totals: If True include total given for each fund
+    :return: List of fund descriptions
+    """
+```
+##### List Campaigns
+```Python
+def list_campaigns(self) -> List[dict]:
+    """
+    List pledge campaigns
+    :return:  List of campaigns
+    """
+```
+##### List Pledges
+```Python
+def list_pledges(self, campaign_id) -> List[dict]:
+    """
+    List of pledges within a campaign
+    :param campaign_id: ID number of a campaign
+    :return: List of pledges
+    """
+```
+#### Forms
+##### List Form Entries
+```Python
+def list_form_entries(self, form_id, details=False):
+    """
+    Return entries for a given form
+    :param form_id: The ID of the form
+    :param details: If True, return all information (slower) else just names
+    :return: List of form entries, for example:
+      [
+       {
+        "id":"11",
+        "form_id":"15326",
+        "created_on":"2021-03-09 13:04:02",
+        "person_id":null,
+        "response":{
+            "45":{
+            "id":"13",
+            "oid":"1512",
+            "first_name":"Zoe",
+            "last_name":"Washburne",
+            "created_on":"2021-03-09 13:04:03"
+            },
+            "46":"zwashburne@test.com",
+            "47":"Red"
+        }
+       },
+      ]
+      """
+```
+#### Tags
+#### Get Tags
+```Python
+def get_tags(self, folder_id=None):
+    """
+    Get list of tags
+    :param folder_id: If set, only include tags in this folder id
+    :return: List of tags, for example:
+        [
+          {
+            "id":"523928",
+            "name":"4th & 5th",
+            "created_on":"2018-09-10 09:19:40",
+            "folder_id":"1539"
+          },
+          {
+            "id":"51994",
+            "name":"6th Grade",
+            "created_on":"2018-02-06 06:40:40",
+            "folder_id":"1539"
+          },
+        ]
+    """
+```
+##### Get Tag Folders
+```Python
+def get_tag_folders(self) -> List[dict]:
+    """
+    Get list of tag folders
+    :return: List of tag folders, for example:
+       [
+         {
+             "id":"1234567",
+             "parent_id":"0",
+             "name":"All Tags",
+             "created_on":"2018-06-05 18:12:34"
+         },
+         {
+             "id":"8234253",
+             "parent_id":"120425",
+             "name":"Kids",
+             "created_on":"2018-06-05 18:12:10"
+         },
+         {
+             "id":"1537253",
+             "parent_id":"5923042",
+             "name":"Small Groups",
+             "created_on":"2018-09-10 09:19:40"
+         },
+         {
+             "id":"20033",
+             "parent_id":"20031",
+             "name":"Student Ministries",
+             "created_on":"2018-12-15 18:11:31"
+         }
+      ]
+    """
+```
+##### Assign Tag To a Person
+```Python
+def assign_tag(self,
+               person_id: str,
+               tag_id: str) -> bool:
+    """
+    Assign a tag to a person
+    :param person_id: The person to get the tag
+    :param tag_id: ID of tag to assign
+    :return: True if success
+    """
+```
+##### Unassign Tag From a Person
+```Python
+def unassign_tag(self, person_id: str,
+                 tag_id: str) -> bool:
+    """
+    Unassign a tag from a person
+    :param person_id: Person to lose the tag
+    :param tag_id: ID of tag to lose
+    :return: True if success
     """
 ```

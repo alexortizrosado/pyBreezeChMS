@@ -22,7 +22,7 @@ import logging
 import requests
 import json
 from enum import Enum
-from typing import Union, List, Mapping, Sequence, Set
+from typing import Union, List, Mapping, Sequence, Set, Dict
 from combine_settings import load_config
 
 
@@ -42,6 +42,38 @@ class ENDPOINTS(Enum):
 BREEZE_URL_KEY = 'breeze_url'
 BREEZE_API_KEY_KEY = 'api_key'
 HELPER_CONFIG_FILE = 'breeze_maker.yml'
+
+# Valid parameters for various calls
+_GET_PEOPLE_PARAMS = {'limit', 'offset', 'details'}
+_ADD_PERSON_PARAMS = {'first', 'last', 'fields_json'}
+_UPDATE_PERSON_PARAMS = {'person_id', 'fields_json'}
+_LIST_EVENTS_PARAMS = {'start', 'end'}
+_ADD_EVENT_PARAMS = {'name', 'starts_on', 'ends_on', 'all_day',
+                     'description', 'category_id', 'event_id',
+                     }
+_ADD_CONTRIBUTION_PARAMS = {'amount',
+                            'batch_name',
+                            'batch_number',
+                            'date',
+                            'email',
+                            'funds_json',
+                            'group',
+                            'method',
+                            'name',
+                            'note',
+                            'payment_id',
+                            'person_id',
+                            'processor',
+                            'street_address',
+                            'uid',
+                            }
+_EDIT_CONTRIBUTION_PARAMS = set(_ADD_CONTRIBUTION_PARAMS)
+_EDIT_CONTRIBUTION_PARAMS.add('person_json')
+_LIST_CONTRIBUTION_PARAMS = {'start', 'end', 'person_id', 'include_family',
+                             'amount_min', 'amount_max', 'method_ids',
+                             'fund_ids', 'envelope_number', 'batches',
+                             'forms',
+                             }
 
 
 class BreezeError(Exception):
@@ -103,14 +135,6 @@ def _transform_settings(args: Mapping) -> dict:
     :param args: Mapping of parameter:value
     :return: New dict with values suitably transformed
     """
-    # # fields_json is a special case that needs to be encoded as json string,
-    # # which the caller may have done, but just in case...
-    # json_fields = [f for f in args.keys() if f.endswith('_json')]
-    # for jfield in json_fields:
-    #     jval = args.get(jfield)
-    #     if jval and not isinstance(jval, str):
-    #         args[jfield] = json.dumps(jval)
-    # fields_json = args.get('fields_json')
     return {k: _transform_setting(k, v) for k, v in args.items() if v}
 
 
@@ -159,35 +183,20 @@ class BreezeApi(object):
         if not self.api_key:
             raise BreezeError('You must provide an API key.')
 
-        # Valid parameters for various apis:
-        self.get_people_params = {'limit', 'offset', 'details'}
-        self.add_person_params = {'first', 'last', 'fields_json'}
-        self.update_person_params = {'person_id', 'fields_json'}
-        self.list_events_params = {'start', 'end'}
-        self.add_event_params = {'name', 'starts_on', 'ends_on', 'all_day',
-                                 'description', 'category_id', 'event_id'}
-        self.add_contribution_params = {'date', 'name', 'person_id', 'uid',
-                                        'email', 'street_address', 'payment_id',
-                                        'processor', 'method', 'funds_json',
-                                        'amount', 'group', 'batch_number', 'batch_name',
-                                        'note'}
-        self.edit_contribution_params = {'payment_id', 'date', 'person_id', 'name',
-                                         'street_address',
-                                         'email', 'uid', 'processor', 'person_json',
-                                         'method',
-                                         'funds_json', 'amount', 'group',
-                                         'batch_number',
-                                         'batch_name', 'note'}
-        self.list_contributions_params = {'start', 'end', 'person_id', 'include_family',
-                                          'amount_min', 'amount_max', 'method_ids',
-                                          'fund_ids', 'envelope_number', 'batches',
-                                          'forms',}
+        # Profile field id to field spec
+        self.profile_spec_by_id: Dict[str, dict] = {}
+        # Profile field name to field spec
+        self.profile_spec_by_name: Dict[str, dict] = {}
+        # All profile field specifications (unwound from original spec)
+        self.profile_specs: List[dict] = []
+        # Raw profile fields description as returned by Breeze
+        self.profile_fields: List[Mapping] = []
 
     def _request(self,
                  endpoint: ENDPOINTS,
                  command: str = '',
                  params: Mapping[str, Union[str, int, float, Mapping, Sequence]]
-                                = dict(),
+                 = dict(),
                  headers: dict = dict(),
                  timeout: int = 60,
                  ):
@@ -229,7 +238,7 @@ class BreezeApi(object):
             logging.debug('JSON Response: %s', response)
             return response
 
-# ------------------ ACCOUNT
+    # ------------------ ACCOUNT
 
     def get_account_summary(self) -> dict:
         """Retrieve the details for a specific account using the API key 
@@ -260,7 +269,7 @@ class BreezeApi(object):
           """
         return self._request(ENDPOINTS.ACCOUNT_SUMMARY)  # NOT TESTED
 
-# ------------------ People
+    # ------------------ People
 
     def list_people(self, **kwargs) -> List[dict]:
         """
@@ -291,18 +300,70 @@ class BreezeApi(object):
             ...
           }
           """
-        _check_illegal_param(kwargs, self.get_people_params)
+        _check_illegal_param(kwargs, _GET_PEOPLE_PARAMS)
         # TODO Add test for filter_json.
         return self._request(ENDPOINTS.PEOPLE, params=kwargs)
 
+    def _build_profile_fields(self) -> List[dict]:
+        """
+        Build the list of profile fields.
+        :return: Profile field list as returned by Breeze
+        But the individual fields have an added 'qualified_name' entry that
+        includes section '{section name}:{field name}'
+        """
+        # Profile fields by id
+        # self.profile_spec_by_id: Mapping[str, dict] = {}
+        # Profile field name to id
+        # self.profile_spec_by_name: Mapping[str, str] = {}
+        # All profile fields specs
+        # self.profile_specs: List[dict] = []
+        if not self.profile_fields:
+            # First time. Get profile fields from Breeze
+            self.profile_fields = self._request(ENDPOINTS.PROFILE_FIELDS)
+            for section in self.profile_fields:
+                for field in section.get('fields'):
+                    field_name = field.get('name')
+                    field_id = field.get('field_id')
+                    field['section_spec'] = section
+                    self.profile_spec_by_id[field_id] = field
+                    self.profile_spec_by_name[field_name] = field
+                    self.profile_specs.append(field)
+        return self.profile_fields
+
     def get_profile_fields(self) -> List[dict]:
         """List profile fields from your database.
+        To be clear, this is a list of profile sections, each section
+        having a list of field specifications in that section.
+        Each field specification has a new 'section_spec' item
+        that refers back to the containing section, which
+        can give the setion name among other things.
 
         :return: List of descriptors of profile fields
         """
-        return self._request(ENDPOINTS.PROFILE_FIELDS)
+        return self.profile_fields if self.profile_fields \
+            else self._build_profile_fields()
 
-    def get_person_details(self, person_id: Union[str, int]) -> dict:
+    def get_field_spec_by_id(self, field_id: str) -> dict:
+        """
+        Return profile spec for given field id
+        :param field_id: Field id
+        :return: Field specification
+        """
+        if not self.profile_fields:
+            self._build_profile_fields()
+        return self.profile_spec_by_id.get(field_id)
+
+    def get_field_spec_by_name(self, name: str) -> dict:
+        """
+        Return profile spec for named field
+        :param name: Name of field
+        :return: Field specification
+        """
+        if not self.profile_fields:
+            self._build_profile_fields()
+        return self.profile_spec_by_name.get(name)
+
+    def get_person_details(self, person_id: str) -> dict:
         """
         Retrieve the details for a specific person by their ID.
         :param person_id: Unique id for a person in Breeze database.
@@ -333,7 +394,7 @@ class BreezeApi(object):
                        for a specific person.
         :return: JSON response equivalent to get_person_details().
         """
-        _check_illegal_param(kwargs, self.add_person_params)
+        _check_illegal_param(kwargs, _ADD_PERSON_PARAMS)
         return self._request(ENDPOINTS.PEOPLE, command='add',
                              params=_transform_settings(kwargs))
 
@@ -360,10 +421,10 @@ class BreezeApi(object):
                        exist for a specific person.
         :returns: JSON response equivalent to get_person_details(person_id).
         """
-        _check_illegal_param(kwargs, self.update_person_params)
+        _check_illegal_param(kwargs, _UPDATE_PERSON_PARAMS)
         return self._request(ENDPOINTS.PEOPLE, command='update', params=kwargs)
 
-# -------------------- Calendars and Events
+    # -------------------- Calendars and Events
 
     def list_calendars(self) -> List[dict]:
         """
@@ -381,7 +442,7 @@ class BreezeApi(object):
           end: End date; defaults to last day of the current month
         :return: JSON response
         """
-        _check_illegal_param(kwargs, self.list_events_params)
+        _check_illegal_param(kwargs, _LIST_EVENTS_PARAMS)
         return self._request(ENDPOINTS.EVENTS, params=kwargs)
 
     def list_event(self, instance_id: Union[str, int]) -> dict:
@@ -409,7 +470,7 @@ class BreezeApi(object):
         :return: JSON response
         """
 
-        _check_illegal_param(kwargs, self.add_event_params)
+        _check_illegal_param(kwargs, _ADD_EVENT_PARAMS)
         return self._request(ENDPOINTS.EVENTS,
                              command='add',
                              params=_transform_settings(kwargs))
@@ -479,7 +540,7 @@ class BreezeApi(object):
         return self._request(ENDPOINTS.EVENTS, command='attendance/eligible',
                              params={'instance_id': instance_id})
 
-# ------------ Contributions
+    # ------------ Contributions
 
     def add_contribution(self, **kwargs) -> str:
         """
@@ -534,7 +595,7 @@ class BreezeApi(object):
         :return: Payment id
         :raises: BreezeError on failure to add contribution
         """
-        _check_illegal_param(kwargs, self.add_contribution_params)
+        _check_illegal_param(kwargs, _ADD_CONTRIBUTION_PARAMS)
         response = self._request(ENDPOINTS.CONTRIBUTIONS, command='add', params=kwargs)
         return response['payment_id']
 
@@ -597,7 +658,7 @@ class BreezeApi(object):
         :note: Handling of fields related to uid and processor is as described
                for add_contribution().
         """
-        _check_illegal_param(kwargs, self.edit_contribution_params)
+        _check_illegal_param(kwargs, _EDIT_CONTRIBUTION_PARAMS)
         response = self._request(ENDPOINTS.CONTRIBUTIONS,
                                  command='edit',
                                  params=kwargs)
@@ -638,13 +699,13 @@ class BreezeApi(object):
         if kwargs.get('include_family') and not kwargs.get('person_id'):
             raise BreezeError('include_family requires a person_id.')
 
-        _check_illegal_param(kwargs, self.list_contributions_params)
+        _check_illegal_param(kwargs, _LIST_CONTRIBUTION_PARAMS)
         return self._request(ENDPOINTS.CONTRIBUTIONS, command='list', params=kwargs)
 
     def list_funds(self, include_totals: bool = False) -> List[dict]:
         """
         List all funds
-        :param include_totals: If true include total given for each fund
+        :param include_totals: If True include total given for each fund
         :return: List of fund descriptions
         """
 
@@ -670,16 +731,14 @@ class BreezeApi(object):
                              command="list_pledges",
                              params={'campaign_id': campaign_id})
 
-# -------------------------- Forms
+    # -------------------------- Forms
 
     def list_form_entries(self, form_id, details=False):
-        """return entries for the given form
-        Args:
-          form_id:the ID of the form
-          details: Option to return all information (slower) or just names.
-
-        returns:
-          JSON response. For example:
+        """
+        Return entries for a given form
+        :param form_id: The ID of the form
+        :param details: If True, return all information (slower) else just names
+        :return: List of form entries, for example:
           [
            {
             "id":"11",
@@ -698,47 +757,44 @@ class BreezeApi(object):
                 "47":"Red"
             }
            },
-          ]"""
+          ]
+          """
         return self._request(ENDPOINTS.FORMS, command='list_form_entries',
                              params={'form_id': form_id,
                                      'details': '1' if details else None})
 
-# ------------- Tags
+    # ------------- Tags
 
     def get_tags(self, folder_id=None):
         """
         Get list of tags
         :param folder_id: If set, only include tags in this folder id
         :return: List of tags, for example:
-
             [
-            {
+              {
                 "id":"523928",
                 "name":"4th & 5th",
                 "created_on":"2018-09-10 09:19:40",
                 "folder_id":"1539"
-            },
-            {
+              },
+              {
                 "id":"51994",
                 "name":"6th Grade",
                 "created_on":"2018-02-06 06:40:40",
                 "folder_id":"1539"
-            },
-            { ... }
-            ]"""
+              },
+            ]
+        """
 
         return self._request(ENDPOINTS.TAGS,
                              command='list_tags',
                              params={'folder_id': folder_id} if folder_id else None)
 
     def get_tag_folders(self) -> List[dict]:
-        """List of tag folders
-
-        Args: (none)
-
-        Returns:
-          JSON response, for example:
-             [
+        """
+        Get list of tag folders
+        :return: List of tag folders, for example:
+           [
              {
                  "id":"1234567",
                  "parent_id":"0",
@@ -763,7 +819,8 @@ class BreezeApi(object):
                  "name":"Student Ministries",
                  "created_on":"2018-12-15 18:11:31"
              }
-             ]"""
+          ]
+        """
         return self._request(ENDPOINTS.TAGS, command='list_folders')
 
     def assign_tag(self,
@@ -792,6 +849,7 @@ class BreezeApi(object):
                                  params={'person_id': person_id, 'tag_id': tag_id})
 
         return response
+
 
 # ------------ Volunteers
 
