@@ -371,6 +371,19 @@ class BreezeApi(object):
         """
         return self._request(ENDPOINTS.PEOPLE, command=str(person_id))
 
+    def field_value_from_name(self, field_name: str, person_details: dict) -> dict:
+        """
+        Get a profile field value from a person's profile data
+        :param field_name: Name of the field
+        :param person_details: Person's detail info
+        :return: The field's value information
+        """
+        field_spec = self.get_field_spec_by_name(field_name)
+        if not field_spec:
+            return {}
+        field_id = field_spec.get('field_id')
+        return person_details.get('details').get(field_id)
+
     def add_person(self, **kwargs) -> str:
         """
         Add a new person to the database
@@ -719,6 +732,7 @@ class BreezeApi(object):
         :return:  List of campaigns
         """
         return self._request(ENDPOINTS.PLEDGES, command='list_campaigns')
+
 
     def list_pledges(self, campaign_id) -> List[dict]:
         """

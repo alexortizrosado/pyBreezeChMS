@@ -6,7 +6,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'breeze_chms_api'
-version = '1.1.0'
+version = '1.2.0'
 authors = [
   { name="David A. Willcox", email="daw30410@yahoo.com" },
 ]
@@ -25,6 +25,10 @@ dependencies = [
                 "combine_settings>=1.0.1",
                 "requests>=1.1.0",
 ]
+
+#entry_points={
+#    'console_scripts': ['<name> = <name>.console:main'],
+#}
 
 [project.urls]
 Homepage = "https://github.com/dawillcox/pyBreezeChMS"

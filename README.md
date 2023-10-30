@@ -1,7 +1,7 @@
 PyBreezeChMS
 =================
 
-Python interface to BreezeChMS REST API http://www.breezechms.com
+Python interface to BreezeChMS REST API.
 
 This is an adaption of [PyBreezeChMS](https://github.com/alexortizrosado/pyBreezeChMS),
 the "official" Python implementation of the [Breeze API](https://app.breezechms.com/api).
@@ -74,7 +74,7 @@ people = breeze_api.list_people()
 ## Other methods
 
 * `get_account_summary`: Retrieve details of your account.
-* `list_peiple`: Get information about people.
+* `list_people`: Get information about people.
 * `get_profile_fields`: Your organization's profile fields.
 * `get_field_spec_by_id`: Get profile field specification by id
 * `get_field_spec_by_name:` Get profile field specification for named field

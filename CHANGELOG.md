@@ -7,4 +7,7 @@ Initial version. Derived from  [PyBreezeChMS](https://github.com/alexortizrosado
 
 ## 1.1.0
 Adding some new methods for profile fields.
-* Release: TBD
+* Release: 29 Aug 2023
+
+## 1.2.0
+Adding profile_helper with methods to simplify extracting field values from profiles.
