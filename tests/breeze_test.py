@@ -197,15 +197,26 @@ class BreezeApiTestCase(unittest.TestCase):
 
     def test_get_field_spec_by_name(self):
         self._make_profile_field_api()
+        expect_id = '2114298709'
         field = self.breeze_api.get_field_spec_by_name('Church Relationship')
-        self.assertEqual('2114298709', field.get('field_id'))
+        self.assertEqual(expect_id, field.get('field_id'))
         self.assertEqual('Church Relationships', field.get('section_spec').get('name'))
+        profile = {'details': {expect_id: {'content': 'expected'}}}
+        val_from_name =self.breeze_api.field_value_from_name(
+            'Church Relationship',
+            profile)
+        self.assertEqual('expected', val_from_name.get('content'))
+        bad_field = self.breeze_api.field_value_from_name('badfield', profile)
+        self.assertFalse(bad_field)
 
     def test_get_field_spec_by_id(self):
         self._make_profile_field_api()
         field = self.breeze_api.get_field_spec_by_id('2114298972')
         self.assertEqual('Member Number', field.get('name'))
         self.assertEqual('Membership Status', field.get('section_spec').get('name'))
+
+    def test_field_value_by_name(self):
+        self._make_profile_field_api()
 
     def test_account_summary(self):
         rsp = {
