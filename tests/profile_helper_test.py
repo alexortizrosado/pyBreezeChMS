@@ -8,7 +8,7 @@ from breeze_chms_api.profile_helper import (join_dicts,
 
 TEST_FILES_DIR = os.path.join(os.path.split(__file__)[0], 'test_files')
 
-def test_dict(key_list: List[str], val: str):
+def make_dict(key_list: List[str], val: str):
     return {k: f'{k}: {val}' for k in key_list}
 
 class HelperTests(unittest.TestCase):
@@ -16,8 +16,8 @@ class HelperTests(unittest.TestCase):
                         left_keys: List[str],
                         expect_order: List[str]
                         ) -> dict:
-        right = test_dict(right_keys, 'right')
-        left = test_dict(left_keys, 'left')
+        right = make_dict(right_keys, 'right')
+        left = make_dict(left_keys, 'left')
         result = join_dicts(right, left)
         got_keys = [k for k in result.keys()]
         self.assertEqual(got_keys, expect_order)
@@ -39,9 +39,9 @@ class HelperTests(unittest.TestCase):
     def test_merge(self):
         right_keys = ['a', 'l', 'x', 'c', 'd', 'e', 'b', 'z', 'q']
         left_keys = ['a', 'b', 'c', 'e', 'f', 'x', 'q']
-        right = test_dict(right_keys, 'right')
+        right = make_dict(right_keys, 'right')
         # print(right.keys())
-        left = test_dict(left_keys, 'left')
+        left = make_dict(left_keys, 'left')
         expect_order = ['a', 'b', 'c', 'e', 'l', 'f', 'x', 'q', 'd', 'z']
         self._validate_merge(right_keys, left_keys, expect_order)
         # print(left.keys())
