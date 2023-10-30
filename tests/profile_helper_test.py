@@ -8,8 +8,8 @@ from breeze_chms_api.profile_helper import (join_dicts,
 
 TEST_FILES_DIR = os.path.join(os.path.split(__file__)[0], 'test_files')
 
-def test_dict(keys: List[str], val: str):
-    return {k: f'{k}: {val}' for k in keys}
+def test_dict(key_list: List[str], val: str):
+    return {k: f'{k}: {val}' for k in key_list}
 
 class HelperTests(unittest.TestCase):
     def _validate_merge(self, right_keys: List[str],
