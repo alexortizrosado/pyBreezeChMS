@@ -21,9 +21,10 @@ __author__ = 'daw30410@yahoo.com (David A. Willcox)'
 import logging
 import requests
 import json
+import combine_settings
 from enum import Enum
 from typing import Union, List, Mapping, Sequence, Set, Dict
-from combine_settings import load_config
+# from combine_settings import load_config, config_file_list
 
 
 class ENDPOINTS(Enum):
@@ -905,10 +906,20 @@ def breeze_api(breeze_url: str = None,
     # First check if we have an explicit url and API key
     if not breeze_url or not api_key:
         # url and api key not explicitly given, so load from configuration files
-        config = load_config(config_name, **kwargs)
+        config = combine_settings.load_config(config_name, **kwargs)
         breeze_url = breeze_url if breeze_url else config.get('breeze_url')
         api_key = api_key if api_key else config.get('api_key')
         if not breeze_url or not api_key:
             raise BreezeError("Both breeze_url and api_key are required")
 
     return BreezeApi(breeze_url, api_key, dry_run=dry_run, connection=connection)
+
+def config_file_list(config_name: str = HELPER_CONFIG_FILE,
+                     **kwargs) -> List[str]:
+    """
+    Returns list of potential files that will be searched for Breeze configuration.
+    :param config_name: Name of configuration file if not default
+    :param kwargs: Other configuration arguments relevant to load_config()
+    :return: List of files
+    """
+    return combine_settings.config_file_list(config_name=config_name, **kwargs)

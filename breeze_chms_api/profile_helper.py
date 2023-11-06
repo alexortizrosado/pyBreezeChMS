@@ -366,7 +366,7 @@ def join_dicts(values_right: Dict[str, Union[str, List[str], dict]],
 
 def profile_compare(diffs: Dict[str, Dict[str, Dict[str, Tuple[List, List]]]],
                     field_map: Dict[str, str] = None) \
-        -> List[Tuple[str, List[Tuple[str, str, str]]]]:
+        -> List[Tuple[str, List[Tuple[str, List[str], List[str]]]]]:
     """
     Generate a report of changed field values between two versions of profiles.
     :param diffs: The result of running join_dicts() on the output of

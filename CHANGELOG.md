@@ -11,3 +11,6 @@ Adding some new methods for profile fields.
 
 ## 1.2.0
 Adding profile_helper with methods to simplify extracting field values from profiles.
+
+## 1.3.0 6 Nov 2023
+Adding config_file_list()

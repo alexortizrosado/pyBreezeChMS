@@ -6,6 +6,8 @@ Usage:
 
 import json
 import unittest
+
+import combine_settings
 import requests
 import os
 
@@ -599,6 +601,12 @@ class BreezeApiTestCase(unittest.TestCase):
         overrides = {'breeze_url': None, 'api_key': None}
         self.assertRaises(breeze.BreezeError,
                           lambda: breeze.breeze_api(overrides=overrides))
+
+    def test_config_file_list(self):
+        myfile = 'myconfig.yml'
+        dirs = breeze.config_file_list(config_name=myfile)
+        expected = combine_settings.config_file_list(config_name=myfile)
+        self.assertEqual(expected, dirs)
 
 
 if __name__ == '__main__':

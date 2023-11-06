@@ -638,6 +638,20 @@ profiles = helper.process_profiles(people)
 for pid, person in profiles.items():
     handle_this_person(pid, person)
 ```
+## Potential Configuration File List
+As a potential aid to users, `config_file_list()` returns a list of files
+that will be searched to find your Breeze credentials.
+```Python
+def config_file_list(config_name: str = 'breeze_maker.yml',,
+                     **kwargs) -> List[str]:
+    """
+    Returns list of potential files that will be searched for Breeze configuration.
+    :param config_name: Name of configuration file if not default
+    :param kwargs: Other configuration arguments relevant to load_config()
+    :return: List of files
+    """
+```
+The `**kwargs` parameters should be the same as `breeze_api()`.
 
 ## Profile Helper Utility Methods
 `profile_helper` has a couple of utility functions that may
@@ -645,7 +659,6 @@ not seem useful to you, but will be used in a future suite of
  report generators.
 ### Join Two Dictionaries
 ```Python
-    """
 def join_dicts(values_right: Dict[str, Union[str, List[str], dict]],
                values_left: Dict[str, Union[str, List[str], dict]]) ->  \
         Dict[str, Tuple[Union[str, List[str], dict, None],
@@ -777,5 +790,4 @@ updates = profile_helper.profile_compare(
 
 # Save for next run
 save_current_data(current_field_def, current_profiles)
-)
 ```

@@ -1,6 +1,6 @@
 [build-system]
 requires = ['setuptools>=61.0',
-            'combine_settings>=1.0.1',
+            'combine_settings>=1.1.0',
             ]
 build-backend = 'setuptools.build_meta'
 
@@ -22,7 +22,7 @@ classifiers = [
     "Natural Language :: English",
 ]
 dependencies = [
-                "combine_settings>=1.0.1",
+                "combine_settings>=1.1.0",
                 "requests>=1.1.0",
 ]
 
