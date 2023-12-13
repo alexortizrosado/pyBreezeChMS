@@ -364,6 +364,7 @@ class BreezeApiTestCase(unittest.TestCase):
         self.make_api(ret)
         instance = '123459'
         result = self.breeze_api.list_eligible_people(instance)
+        self.assertEqual(ret, result)
         self.validate_url(ENDPOINTS.EVENTS, command='attendance/eligible',
                           expect_params={'instance_id': instance})
 
