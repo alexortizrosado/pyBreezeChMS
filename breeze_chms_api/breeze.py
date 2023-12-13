@@ -182,8 +182,8 @@ class BreezeApi(object):
     def _request(self,
                  endpoint: ENDPOINTS,
                  command: str = '',
-                 params: Mapping[str, Union[str, int, float, Mapping, Sequence]]
-                 = dict(),
+                 params: Mapping[str, Union[str, int, float, Mapping, Sequence]] \
+                         = dict(),
                  headers: dict = dict(),
                  timeout: int = 60,
                  ):

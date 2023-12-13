@@ -45,8 +45,8 @@ class MockConnection(object):
         return self._response
 
     def reset(self):
-        self.url = []
-        self.params = []
+        self._url = []
+        self._params = []
 
     @property
     def url(self):
@@ -185,7 +185,7 @@ class BreezeApiTestCase(unittest.TestCase):
         self.validate_url(ENDPOINTS.PEOPLE, expect_params=args)
         self.assertEqual(expect, result)
 
-    def _make_profile_field_api(self) -> List[dict]:
+    def _make_profile_field_api(self) -> str:
         with open(os.path.join(TEST_FILES_DIR, 'profiles.json'), 'r') as f:
             json_str = f.read()
         self.make_api(json_str)
