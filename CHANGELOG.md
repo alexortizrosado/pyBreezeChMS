@@ -14,3 +14,7 @@ Adding profile_helper with methods to simplify extracting field values from prof
 
 ## 1.3.0 6 Nov 2023
 Adding config_file_list()
+
+## 1.3.0 13 Dec 2023
+Cleaning up some unit tests.
+Adding list_form_fields() method.
