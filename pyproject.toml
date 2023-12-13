@@ -6,7 +6,7 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'breeze_chms_api'
-version = '1.3.0'
+version = '1.4.0'
 authors = [
   { name="David A. Willcox", email="daw30410@yahoo.com" },
 ]
