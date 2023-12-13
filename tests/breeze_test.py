@@ -206,7 +206,7 @@ class BreezeApiTestCase(unittest.TestCase):
         self.assertEqual(expect_id, field.get('field_id'))
         self.assertEqual('Church Relationships', field.get('section_spec').get('name'))
         profile = {'details': {expect_id: {'content': 'expected'}}}
-        val_from_name =self.breeze_api.field_value_from_name(
+        val_from_name = self.breeze_api.field_value_from_name(
             'Church Relationship',
             profile)
         self.assertEqual('expected', val_from_name.get('content'))
@@ -278,8 +278,8 @@ class BreezeApiTestCase(unittest.TestCase):
             "field_type": "email",
             "response": "true",
             "details": {
-                 "address": "tony@starkindustries.com",
-                 "is_private": 1
+                "address": "tony@starkindustries.com",
+                "is_private": 1
             }
         }
         self.update_person_test(fields=fields)
@@ -385,7 +385,7 @@ class BreezeApiTestCase(unittest.TestCase):
             'group': 'Group',
             'batch_number': '100',
             'batch_name': 'Batch Name',
-            }
+        }
 
         result = self.breeze_api.add_contribution(**args)
 
@@ -411,7 +411,7 @@ class BreezeApiTestCase(unittest.TestCase):
             'group': 'Group',
             'batch_number': '102',
             'batch_name': 'Batch Name'
-            }
+        }
 
         result = self.breeze_api.edit_contribution(**args)
         self.validate_url(ENDPOINTS.CONTRIBUTIONS, command='edit', expect_params=args)
@@ -474,6 +474,62 @@ class BreezeApiTestCase(unittest.TestCase):
         self.validate_url(ENDPOINTS.FORMS,
                           command='list_form_entries',
                           expect_params=args)
+
+    def test_list_form_fields(self):
+        self.make_api(json.dumps([{
+                'id': '46639570',
+                'oid': '146854',
+                'field_id': '1515006468',
+                'profile_section_id': '0',
+                'field_type': 'name',
+                'name': 'Name',
+                'position': '5',
+                'profile_id': '62d1b3e14e67e',
+                'created_on': '2022-07-15 13:37:21',
+                'options': []
+            },
+            {
+                'id': '46639572',
+                'oid': '146854',
+                'field_id': '1515006469',
+                'profile_section_id': '0',
+                'field_type': 'single_line',
+                'name': 'Email',
+                'position': '6',
+                'profile_id': '62d1b3e14e67e',
+                'created_on': '2022-07-15 13:37:21',
+                'options': []
+            },
+            {
+                'id': '46639574',
+                'oid': '146854',
+                'field_id': '1515006470',
+                'profile_section_id': '0',
+                'field_type': 'single_line',
+                'name': 'Phone',
+                'position': '7',
+                'profile_id': '62d1b3e14e67e',
+                'created_on': '2022-07-15 13:37:21',
+                'options': []
+            },
+            {
+                'id': '46639576',
+                'oid': '146854',
+                'field_id': '1515006471',
+                'profile_section_id': '0',
+                'field_type': 'address',
+                'name': 'Address',
+                'position': '8',
+                'profile_id': '62d1b3e14e67e',
+                'created_on': '2022-07-15 13:37:21',
+                'options': []
+            }]))
+        args = {'form_id': 1}
+        result = self.breeze_api.list_form_fields(**args)
+        self.validate_url(ENDPOINTS.FORMS,
+                          command='list_form_fields',
+                          expect_params=args)
+        self.assertEqual(json.loads(self.response.content), result)
 
     def test_list_funds(self):
         ret = [

@@ -94,6 +94,7 @@ people = breeze_api.list_people()
 * `edit_contribution`: Edit an existing contribution.
 * `delete_contribution`: Delete a contribution.
 * `list_form_entries`: Get submitted forms.
+* `list_form_fields`: List the fields in a given form.
 * `list_contributions`: List selected contributions.
 * `list_funds`: List your contribution funds.
 * `list_campaigns`: List pledge campaigns.
