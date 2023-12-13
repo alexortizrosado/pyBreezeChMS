@@ -24,7 +24,6 @@ import json
 import combine_settings
 from enum import Enum
 from typing import Union, List, Mapping, Sequence, Set, Dict
-# from combine_settings import load_config, config_file_list
 
 
 class ENDPOINTS(Enum):
@@ -35,7 +34,7 @@ class ENDPOINTS(Enum):
     FUNDS = 'funds'
     PLEDGES = 'pledges'
     TAGS = 'tags'
-    ACCOUNT_SUMMARY = 'account/summary'
+    ACCOUNT = 'account'
     FORMS = 'forms'
     VOLUNTEERS = 'volunteers'
 
@@ -45,7 +44,7 @@ BREEZE_API_KEY_KEY = 'api_key'
 HELPER_CONFIG_FILE = 'breeze_maker.yml'
 
 # Valid parameters for various calls
-_GET_PEOPLE_PARAMS = {'limit', 'offset', 'details'}
+_GET_PEOPLE_PARAMS = {'limit', 'offset', 'details', 'filter_json'}
 _ADD_PERSON_PARAMS = {'first', 'last', 'fields_json'}
 _UPDATE_PERSON_PARAMS = {'person_id', 'fields_json'}
 _LIST_EVENTS_PARAMS = {'start', 'end'}
@@ -87,19 +86,6 @@ class BreezeError(Exception):
 class BreezeBadParameter(BreezeError):
     def __init__(self, *args):
         BreezeError.__init__(self, args)
-
-
-def _request_succeeded(response) -> bool:
-    """Predicate to ensure that the HTTP request succeeded."""
-    if isinstance(response, bool):
-        return response
-    elif isinstance(response, dict):
-        return (response.get('success')
-                or not (response.get('errors')
-                        or response.get('errorCode')))
-    else:
-        return True
-
 
 def _transform_setting(key: str, val: Union[int, Mapping, Sequence, None]) -> \
         Union[str, None]:
@@ -218,7 +204,6 @@ class BreezeApi(object):
         if headers:
             http_headers.update(headers)
 
-        params = _transform_settings(params)
         keywords = dict(headers=http_headers,
                         params=_transform_settings(params),
                         timeout=timeout)
@@ -228,16 +213,20 @@ class BreezeApi(object):
         if self.dry_run:
             return  # NOT TESTED
 
-        response = self.connection.get(url, verify=True, **keywords)
         try:
-            response = response.json()
-        except requests.ConnectionError as error:
-            raise BreezeError(error)
-        else:
-            if not _request_succeeded(response):
+            response = self.connection.get(url, verify=True, **keywords)
+            if not response.ok:
                 raise BreezeError(response)
-            logging.debug('JSON Response: %s', response)
-            return response
+            response_json = response.json()
+        except (requests.ConnectionError,
+                requests.exceptions.ConnectionError) as error:
+            raise BreezeError(error)
+
+        if isinstance(response_json, dict):
+            if response_json.get('errors') or response_json.get('errorCode'):
+                raise BreezeError(response)
+        logging.debug('JSON Response: %s', response_json)
+        return response_json
 
     # ------------------ ACCOUNT
 
@@ -268,7 +257,7 @@ class BreezeApi(object):
             }
           }
           """
-        return self._request(ENDPOINTS.ACCOUNT_SUMMARY)  # NOT TESTED
+        return self._request(ENDPOINTS.ACCOUNT, 'summary')  # NOT TESTED
 
     # ------------------ People
 

@@ -40,13 +40,10 @@ class HelperTests(unittest.TestCase):
         right_keys = ['a', 'l', 'x', 'c', 'd', 'e', 'b', 'z', 'q']
         left_keys = ['a', 'b', 'c', 'e', 'f', 'x', 'q']
         right = make_dict(right_keys, 'right')
-        # print(right.keys())
         left = make_dict(left_keys, 'left')
         expect_order = ['a', 'b', 'c', 'e', 'l', 'f', 'x', 'q', 'd', 'z']
         self._validate_merge(right_keys, left_keys, expect_order)
-        # print(left.keys())
         result = join_dicts(right, left)
-        # print(result)
         lset = set(left.keys())
         rset = set(right.keys())
         allkeys = lset.union(rset)
@@ -77,9 +74,6 @@ class DiffTests(unittest.TestCase):
         field_names.update(test_helper.get_field_id_to_name())
         result = compare_profiles(ref_helper, test_helper, ref_profiles, test_profiles)
         self.assertIsNotNone(result)
-        # for r in result:
-        #     print(r)
-        # print(json.dumps(result, indent=1))
         self.assertEqual(4, len(result))
         p = result[0]
         self.assertEqual(p[0], 'Alast, Firstname1')
