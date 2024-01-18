@@ -781,7 +781,8 @@ class BreezeApi(object):
         """
             List the fields for a given form.
             :param form_id: The ID of the form
-            :return: The fields that correspond to the numeric form id provided, for example:
+            :return: The fields that correspond to the numeric form id provided,
+                for example:
         [
         {
             "id":"185",
