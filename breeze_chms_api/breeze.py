@@ -767,6 +767,16 @@ class BreezeApi(object):
                              params={'form_id': form_id,
                                      'details': '1' if details else None})
 
+    def remove_form_entry(self, entry_id):
+        """
+        Remove the designated form entry.
+        :param entry_id: The ID of the entry to remove from Breeze.
+        :return: True if successful
+        """
+        return self._request(ENDPOINTS.FORMS, command='remove_form_entry',
+                             params={'entry_id': entry_id})
+
+
     def list_form_fields(self, form_id):
         """
             List the fields for a given form.
