@@ -18,3 +18,10 @@ Adding config_file_list()
 ## 1.3.0 13 Dec 2023
 Cleaning up some unit tests.
 Adding list_form_fields() method.
+
+## 1.4.0
+Add support for config_file_list()
+Much cleanup of unit tests.
+
+## 1.4.1 18 Jan 2024
+Adding remove_form_entry() method.

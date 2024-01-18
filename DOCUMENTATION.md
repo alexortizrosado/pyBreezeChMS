@@ -453,8 +453,41 @@ def list_form_entries(self, form_id, details=False):
       ]
       """
 ```
+##### Remove Form Entry
+```Python
+def remove_form_entry(self, entry_id):
+    """
+    Remove the designated form entry.
+    :param entry_id: The ID of the entry to remove from Breeze.
+    :return: True if successful
+    """
+```
+##### List Form Fields
+```Python
+    def list_form_fields(self, form_id):
+        """
+            List the fields for a given form.
+            :param form_id: The ID of the form
+            :return: The fields that correspond to the numeric form id provided, for example:
+        [
+        {
+            "id":"185",
+            "oid":"1512",
+            "field_id":"45",
+            "profile_section_id":"0",
+            "field_type":"name",
+            "name":"Name",
+            "position":"3",
+            "profile_id":"5877b98301fc2",
+            "created_on":"2022-01-12 09:14:43",
+            "options":[
+            ]
+        },...
+        ]
+        """
+```
 #### Tags
-#### Get Tags
+##### Get Tags
 ```Python
 def get_tags(self, folder_id=None):
     """
