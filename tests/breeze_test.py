@@ -479,10 +479,10 @@ class BreezeApiTestCase(unittest.TestCase):
         ret = True
         self.make_api(ret)
         args = {'entry_id': '105928817'}
-        result = self.breeze_api.list_form_entries(**args)
+        result = self.breeze_api.remove_form_entry(**args)
         self.assertEqual(ret, result)
         self.validate_url(ENDPOINTS.FORMS,
-                          command='list_form_entries',
+                          command='remove_form_entry',
                           expect_params=args)
 
     def test_list_form_fields(self):
